@@ -1,0 +1,455 @@
+<html>
+<head>
+<base href=".">
+<meta charset="utf-8">
+<title>G&#xe9;n&#xe9;rateur de d&#xe9;coupage papier A4 - Version LibreOffice</title>
+<style>
+    :root {
+        --bg-color: #f0f0f0;
+        --text-color: #333;
+        --card-bg: white;
+        --border-color: #666;
+    }
+
+    body.dark-mode {
+        --bg-color: #222;
+        --text-color: #fff;
+        --card-bg: #333;
+        --border-color: #888;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: var(--bg-color);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--text-color);
+        transition: all 0.3s ease;
+    }
+
+    .page-a4 {
+        width: 210mm;  
+        height: 297mm; 
+        background-color: var(--card-bg);
+        margin: 0 auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        display: grid;
+        grid-template-columns: repeat(1, 192mm); 
+        grid-template-rows: repeat(3, 93mm);   
+        gap: 0;
+        box-sizing: border-box;
+        position: relative;
+        padding: 9mm 9mm;
+        justify-content: center;
+        align-content: center;
+    }
+
+    .token-cell {
+        border: 0.5px dashed var(--border-color);
+        width: 192mm;
+        height: 93mm;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        box-sizing: border-box;
+        margin: 0;
+        position: relative;
+    }
+
+    .cell-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--text-color);
+        z-index: 1;
+        opacity: 0.3;
+    }
+
+    .token-cell:hover {
+        background-color: var(--bg-color);
+    }
+
+    .delete-button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        display: none;
+        z-index: 2;
+    }
+
+    .token-cell:hover .delete-button {
+        display: block;
+    }
+
+    .controls {
+        width: 210mm;  
+        margin: 20px auto;
+        padding: 20px;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .dimensions-info {
+        margin: 10px 0;
+        color: var(--text-color);
+        font-size: 0.9em;
+    }
+
+    .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 10px;
+        border-radius: 5px;
+        border: none;
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+        background: #0056b3;
+    }
+
+    .alignment-marks {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .alignment-mark {
+        position: absolute;
+        width: 2mm;
+        height: 2mm;
+        border: 0.5px solid var(--text-color);
+    }
+
+    .top-center {
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .bottom-center {
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .left-center {
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .right-center {
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .libreoffice-button {
+        background-color: #18A303;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 10px;
+        font-size: 14px;
+    }
+
+    .libreoffice-button:hover {
+        background-color: #147802;
+    }
+
+    .export-instructions {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: var(--card-bg);
+        border-radius: 5px;
+        border-left: 4px solid #18A303;
+        color: var(--text-color);
+    }
+
+    .export-instructions h3 {
+        color: #18A303;
+        margin-top: 0;
+    }
+
+    .export-instructions ol {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+
+    .export-instructions ul {
+        color: var(--text-color);
+    }
+
+    @media print {
+        /* Make sure page fits on single sheet */
+        .page-a4 {
+            margin: 0 !important;
+            padding: 9mm !important;
+            width: 210mm !important;    
+            height: 297mm !important;   
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+        }
+        
+        /* Force grid layout to stay intact */
+        .page-a4 {
+            display: grid !important;
+            grid-template-columns: repeat(1, 192mm) !important;
+            grid-template-rows: repeat(3, 93mm) !important;  
+            gap: 0 !important;
+        }
+
+        /* Ensure each cell prints */
+        .token-cell {
+            width: 192mm !important;
+            height: 93mm !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+        }
+
+        /* Hide unnecessary elements when printing */
+        .controls, .theme-toggle, .delete-button {
+            display: none !important;
+        }
+
+        /* Reset body margins */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            height: 297mm !important;
+        }
+
+        /* Ensure background images print */
+        .token-cell {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            background-size: contain !important;
+            background-repeat: no-repeat !important;
+            background-position: center !important;
+        }
+    }
+    
+    .dimensions-info ul li:first-child::before {
+        content: "Largeur : 192mm";
+    }
+    .dimensions-info ul li:last-child::before {
+        content: "Longueur : 93mm";
+    }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">Mode Nuit</button>
+
+<div class="controls">
+    <h2>G&#xe9;n&#xe9;rateur de tokens papier A4</h2>
+    <p>Cliquez sur une cellule pour y ajouter une image</p>
+    <div class="dimensions-info">
+        <p>Dimensions de chaque case :</p>
+        <ul>
+            <li></li>
+            <li></li>
+        </ul>
+        <p><strong>Note:</strong> Les cases sont parfaitement centr&#xe9;es pour l&apos;impression recto-verso</p>
+    </div>
+    <div class="export-instructions">
+        <h3>Instructions pour LibreOffice</h3>
+        <ol>
+            <li>Cliquez sur &quot;Exporter pour LibreOffice&quot;</li>
+            <li>Ouvrez LibreOffice Writer</li>
+            <li>Cr&#xe9;ez un nouveau document</li>
+            <li>Format &gt; Page &gt; onglet Page :
+                <ul>
+                    <li>Format : A4</li>
+                    <li>Orientation : Portrait</li>
+                    <li>Marges : 0mm partout</li>
+                </ul>
+            </li>
+            <li>Ajustez les dimensions des cellules :
+                <ul>
+                    <li>Largeur : 192mm</li>
+                    <li>Hauteur : 93mm</li>
+                </ul>
+            </li>
+            <li>Ins&#xe9;rez les images export&#xe9;es dans une table 1x3</li>
+            <li>R&#xe9;glez les marges de page &#xe0; 0</li>
+        </ol>
+    </div>
+    <button class="libreoffice-button" onclick="exportForLibreOffice()">Exporter pour LibreOffice</button>
+    <button onclick="window.print()">Imprimer</button>
+    <button onclick="clearStorage()">Effacer tout</button>
+</div>
+
+<div class="page-a4">
+    <div class="alignment-marks">
+        <div class="alignment-mark top-center"></div>
+        <div class="alignment-mark bottom-center"></div>
+        <div class="alignment-mark left-center"></div>
+        <div class="alignment-mark right-center"></div>
+    </div>
+    <div class="token-cell" onclick="addImage(this)">
+        <span class="cell-label">A</span>
+        <button class="delete-button" onclick="deleteImage(this.parentElement, event)">&#xd7;</button>
+    </div>
+    <div class="token-cell" onclick="addImage(this)">
+        <span class="cell-label">B</span>
+        <button class="delete-button" onclick="deleteImage(this.parentElement, event)">&#xd7;</button>
+    </div>
+    <div class="token-cell" onclick="addImage(this)">
+        <span class="cell-label">C</span>
+        <button class="delete-button" onclick="deleteImage(this.parentElement, event)">&#xd7;</button>
+    </div>
+</div>
+
+<script>function addImage(cell) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = event => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            cell.style.backgroundImage = `url(${event.target.result})`;
+            savePageSafely();
+          } catch (error) {
+            alert("Erreur lors de l'enregistrement de l'image. L'espace de stockage est peut-être plein.");
+            console.error(error);
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  input.click();
+}
+function deleteImage(cell, event) {
+  event.stopPropagation();
+  cell.style.backgroundImage = '';
+  savePageSafely();
+}
+function savePageSafely() {
+  try {
+    const cells = document.querySelectorAll('.token-cell');
+    const layout = Array.from(cells).map(cell => cell.style.backgroundImage);
+    if (layout.some(img => img)) {
+      try {
+        localStorage.clear();
+      } catch (e) {
+        console.warn("Impossible de nettoyer le localStorage:", e);
+      }
+    }
+    localStorage.setItem('tokenLayout', JSON.stringify(layout));
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde:", error);
+    alert("Impossible de sauvegarder la mise en page. Essayez d'effacer d'abord le stockage.");
+  }
+}
+function loadPage() {
+  try {
+    const savedLayout = localStorage.getItem('tokenLayout');
+    if (savedLayout) {
+      const layout = JSON.parse(savedLayout);
+      const cells = document.querySelectorAll('.token-cell');
+      cells.forEach((cell, index) => {
+        if (layout[index]) {
+          cell.style.backgroundImage = layout[index];
+        }
+      });
+    }
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      document.querySelector('.theme-toggle').textContent = 'Mode Jour';
+    }
+  } catch (error) {
+    console.error("Erreur lors du chargement:", error);
+  }
+}
+function clearStorage() {
+  try {
+    localStorage.clear();
+    const cells = document.querySelectorAll('.token-cell');
+    cells.forEach(cell => cell.style.backgroundImage = '');
+    alert("Stockage effacé avec succès!");
+  } catch (error) {
+    console.error("Erreur lors de l'effacement:", error);
+    alert("Erreur lors de l'effacement du stockage.");
+  }
+}
+function toggleTheme() {
+  const body = document.body;
+  const button = document.querySelector('.theme-toggle');
+  body.classList.toggle('dark-mode');
+  const isDarkMode = body.classList.contains('dark-mode');
+  button.textContent = isDarkMode ? 'Mode Jour' : 'Mode Nuit';
+  localStorage.setItem('darkMode', isDarkMode);
+}
+function exportForLibreOffice() {
+  const cells = document.querySelectorAll('.token-cell');
+  let images = Array.from(cells).map(cell => cell.style.backgroundImage).filter(img => img !== '');
+  if (images.length === 0) {
+    alert("Veuillez d'abord ajouter des images avant d'exporter.");
+    return;
+  }
+  const exportDoc = document.createElement('div');
+  exportDoc.style.cssText = `
+        width: 210mm;
+        height: 297mm;
+        display: grid;
+        grid-template-columns: repeat(1, 192mm);
+        grid-template-rows: repeat(3, 93mm);
+        gap: 0;
+        padding: 9mm;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    `;
+  const instructions = document.createElement('div');
+  instructions.innerHTML = `
+        <h2>Instructions pour LibreOffice Writer:</h2>
+        <ol>
+            <li>Créez une nouvelle table 1x3</li>
+            <li>Définissez les dimensions des cellules à 93mm x 192mm</li>
+            <li>Collez chaque image dans une cellule</li>
+            <li>Réglez les marges de page à 0</li>
+        </ol>
+    `;
+  const downloadLink = document.createElement('a');
+  downloadLink.download = 'token_template.html';
+  downloadLink.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(exportDoc.outerHTML + instructions.innerHTML);
+  downloadLink.click();
+}
+window.addEventListener('load', loadPage);</script>
+
+</body>
+</html>
