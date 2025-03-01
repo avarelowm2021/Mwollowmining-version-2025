@@ -1,0 +1,1791 @@
+<html><head><base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>/v/O:O\v\ DB Mwollowm</title>
+    <style>
+        :root {
+            --primary-color: #00ff00;
+            --error-color: #ff0000;
+            --bg-dark: #1a1a1a;
+            --bg-medium: #2a2a2a;
+            --bg-light: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 95%;
+            padding: 2rem;
+            background-color: var(--bg-medium);
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            background-color: var(--bg-light);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .timer {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 10px;
+            border: 1px solid var(--primary-color);
+        }
+
+        .qr-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .qr-button {
+            padding: 0.5rem 1rem;
+            background-color: var(--bg-light);
+            border: 2px solid var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .qr-button.active {
+            background-color: var(--primary-color);
+            color: var(--bg-dark);
+        }
+
+        .qr-button:hover {
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .qr-wrapper {
+            display: none;
+        }
+
+        .qr-wrapper.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-code-container {
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            border: 1px solid var(--primary-color);
+            min-width: 150px;
+            min-height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .qr-info {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        .results {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) var(--bg-light);
+        }
+
+        .results::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .result-item {
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            background-color: var(--bg-medium);
+            border-left: 3px solid var(--primary-color);
+            border-radius: 5px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .result-item.invalid {
+            border-left: 3px solid var(--error-color);
+        }
+
+        .result-item.invalid span {
+            color: var(--error-color);
+        }
+
+        .result-item span {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stats {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .transfer-button {
+            margin-top: 1rem;
+            padding: 0.8rem 1.5rem;
+            background-color: var(--bg-light);
+            border: 2px solid var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .transfer-button:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-dark);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .transfer-controls {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .transfer-input {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            background-color: var(--bg-light);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .transfer-input:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .special-stats {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+            border: 1px solid #ff8c00;
+        }
+
+        .special-stat-item {
+            text-align: center;
+        }
+
+        .special-stat-value {
+            color: #ff8c00;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .transfer-history {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+        }
+
+        .transfer-history h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .transfer-item {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--bg-medium);
+            border-radius: 5px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .transfer-amount {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .encode-section {
+            margin-bottom: 20px;
+        }
+
+        .encode-section .qr-code-container {
+            position: static;
+            margin: 20px auto;
+            width: 150px;
+            height: 150px;
+        }
+
+        .token-legend {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .token-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-square {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #fff;
+        }
+
+        .palpable {
+            background-color: #40E0D0;
+        }
+
+        .numeric {
+            background-color: lime;
+        }
+
+        .difference {
+            background-color: #FFA500;
+        }
+
+        .total-palpable {
+            background-color: yellow;
+        }
+
+        .entry-count {
+            background-color: #FF69B4;
+        }
+
+        .average {
+            background-color: #9370DB;
+        }
+
+        .token-graph {
+            background: var(--bg-light);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .na1c142-word {
+            color: turquoise;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .na1c142-image-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+        }
+
+        .na1c142-image-section h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        #na1c142Canvas {
+            background-color: white;
+            width: 198mm;
+            height: 90mm;
+        }
+
+        .color-controls {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            justify-content: center;
+        }
+
+        .color-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .color-control label {
+            color: var(--primary-color);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        #entryCount {
+            font-size: 2rem !important;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+            padding: 10px;
+            background: rgba(255, 105, 180, 0.1);
+            border-radius: 10px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        #resetButton:hover {
+            background-color: var(--error-color) !important;
+            color: white !important;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3) !important;
+        }
+
+        #average {
+            color: #40E0D0 !important;
+            font-weight: bold;
+        }
+
+        .human-figure-container {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .token-display {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            background: rgba(0, 255, 0, 0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .stage-info {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @keyframes muscleGrow {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+            50% {
+                transform: scale(1.03);
+                filter: brightness(1.4);
+            }
+            100% { 
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .human-figure.growing {
+            animation: muscleGrow 2s infinite;
+        }
+
+        #thinFigure, #mediumFigure, #muscularFigure {
+            transition: opacity 0.5s ease;
+        }
+
+        .evolution-controls {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            max-height: 300px; 
+            overflow-y: auto;
+            width: 80%; 
+            margin-left: 20px; 
+        }
+
+        .evolution-stage {
+            margin: 0.3rem 0; 
+            padding: 0.4rem; 
+            border: 1px solid var(--primary-color);
+            border-radius: 6px; 
+            font-size: 0.85rem; 
+        }
+
+        .stage-preview {
+            max-width: 150px; 
+            max-height: 150px; 
+            margin: 0.5rem auto; 
+            display: block;
+        }
+
+        .evolution-group summary {
+            padding: 0.3rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .evolution-group {
+            margin-bottom: 0.5rem;
+        }
+        
+        .position-controls {
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+        }
+        
+        .element-position {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0.5rem 0;
+        }
+        
+        .element-position label {
+            min-width: 100px;
+            color: var(--primary-color);
+        }
+        
+        .element-position input {
+            width: 80px;
+            padding: 0.3rem;
+            background-color: var(--bg-medium);
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .element-position input:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        }
+        
+        .delete-stage-button {
+            background-color: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 0.8rem;
+        }
+
+        .delete-stage-button:hover {
+            background-color: darkred;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>/v/O:O\v\ DB Mwollowm</h1>
+        <div class="human-figure-container">
+            <svg class="human-figure" viewBox="0 0 100 200">
+                <!-- Thin figure -->
+                <g id="thinFigure">
+                    <!-- Head -->
+                    <circle cx="50" cy="30" r="15" fill="none" stroke="var(--primary-color)" stroke-width="2"/>
+                    <!-- Neck -->
+                    <line x1="50" y1="45" x2="50" y2="55" stroke="var(--primary-color)" stroke-width="2"/>
+                    <!-- Torso -->
+                    <path d="M45,55 Q50,90 45,120 L55,120 Q50,90 55,55" fill="none" stroke="var(--primary-color)" stroke-width="2"/>
+                    <!-- Arms -->
+                    <path d="M45,65 Q35,75 30,90" stroke="var(--primary-color)" stroke-width="2" fill="none"/>
+                    <path d="M55,65 Q65,75 70,90" stroke="var(--primary-color)" stroke-width="2" fill="none"/>
+                    <!-- Legs -->
+                    <path d="M45,120 Q40,145 35,170" stroke="var(--primary-color)" stroke-width="2" fill="none"/>
+                    <path d="M55,120 Q60,145 65,170" stroke="var(--primary-color)" stroke-width="2" fill="none"/>
+                </g>
+
+                <!-- Medium figure -->
+                <g id="mediumFigure" opacity="0">
+                    <!-- Head -->
+                    <circle cx="50" cy="30" r="16" fill="none" stroke="var(--primary-color)" stroke-width="2.5"/>
+                    <!-- Neck -->
+                    <line x1="50" y1="46" x2="50" y2="58" stroke="var(--primary-color)" stroke-width="2.5"/>
+                    <!-- Torso -->
+                    <path d="M42,58 Q50,95 42,120 L58,120 Q50,95 58,58" fill="none" stroke="var(--primary-color)" stroke-width="2.5"/>
+                    <!-- Arms -->
+                    <path d="M42,70 Q32,80 25,95" stroke="var(--primary-color)" stroke-width="2.5" fill="none"/>
+                    <path d="M58,70 Q68,80 75,95" stroke="var(--primary-color)" stroke-width="2.5" fill="none"/>
+                    <!-- Legs -->
+                    <path d="M42,120 Q37,145 32,170" stroke="var(--primary-color)" stroke-width="2.5" fill="none"/>
+                    <path d="M58,120 Q63,145 68,170" stroke="var(--primary-color)" stroke-width="2.5" fill="none"/>
+                </g>
+
+                <!-- Muscular figure -->
+                <g id="muscularFigure" opacity="0">
+                    <!-- Head -->
+                    <circle cx="50" cy="30" r="17" fill="none" stroke="var(--primary-color)" stroke-width="3"/>
+                    <!-- Neck -->
+                    <path d="M45,46 L55,46 L55,58 L45,58 Z" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <!-- Torso -->
+                    <path d="M40,58 Q50,95 40,120 L60,120 Q50,95 60,58" fill="none" stroke="var(--primary-color)" stroke-width="3"/>
+                    <!-- Shoulders -->
+                    <path d="M40,65 Q35,65 30,70" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <path d="M60,65 Q65,65 70,70" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <!-- Arms -->
+                    <path d="M30,70 Q25,80 22,95 Q21,100 23,102" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <path d="M70,70 Q75,80 78,95 Q79,100 77,102" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <!-- Legs -->
+                    <path d="M40,120 Q35,145 30,170" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <path d="M60,120 Q65,145 70,170" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+                    <!-- Muscle definitions -->
+                    <path d="M45,75 Q50,85 45,95" stroke="var(--primary-color)" stroke-width="1.5" fill="none"/>
+                    <path d="M55,75 Q50,85 55,95" stroke="var(--primary-color)" stroke-width="1.5" fill="none"/>
+                </g>
+            </svg>
+            <div class="token-display" id="currentTokenDisplay">
+                0,000000 /v/O:O\v\
+            </div>
+            <div class="stage-info" id="stageInfo">
+                &#xc9;tape 1
+            </div>
+        </div>
+        <div class="token-legend">
+            <div class="token-type">
+                <div class="color-square palpable"></div>
+                <span>TPI</span>
+            </div>
+            <div class="token-type">
+                <div class="color-square numeric"></div>
+                <span>TNI</span>
+            </div>
+            <div class="token-type">
+                <div class="color-square difference"></div>
+                <span>TDCN</span>
+            </div>
+            <div class="token-type">
+                <div class="color-square total-palpable"></div>
+                <span>EM</span>
+            </div>
+            <div class="token-type">
+                <div class="color-square entry-count"></div>
+                <span>Nombre d&apos;entr&#xe9;es</span>
+            </div>
+            <div class="token-type">
+                <div class="color-square average"></div>
+                <span>Moyenne</span>
+            </div>
+        </div>
+        <div class="token-graph">
+            <canvas id="tokenChart" width="700" height="300"></canvas>
+        </div>
+        <div class="qr-section">
+            <div class="qr-controls">
+                <button class="qr-button active" data-qr="standard">QR Code Standard</button>
+                <button class="qr-button" data-qr="base64">QR Code Alternatif</button>
+                <button class="qr-button" data-qr="special">QR Code Sp&#xe9;cial</button>
+                <button class="qr-button" data-qr="na1c142">QR Code NA1C142</button>
+            </div>
+            <div class="transfer-controls" style="display: none;">
+                <input type="password" id="transferAmount" step="0.000001" min="0" class="transfer-input" placeholder="Montant &#xe0; transf&#xe9;rer en /v/O:O\v\">
+                <div class="transfer-buttons">
+                    <button id="confirmTransfer" class="transfer-button">Confirmer</button>
+                    <button id="cancelTransfer" class="transfer-button">Annuler</button>
+                </div>
+            </div>
+            <button id="transferButton" class="transfer-button">Transf&#xe9;rer la somme et r&#xe9;initialiser</button>
+            <button id="resetButton" class="transfer-button" style="background-color: var(--error-color); border-color: var(--error-color);">R&#xe9;initialiser l&apos;application</button>
+            <div class="qr-wrapper active" id="standardQR">
+                <div class="qr-code-container" id="qrCode"></div>
+                <div class="qr-info">QR Code de la somme totale:<br><span id="qrValue">0,000000 /v/O:O\v\ </span></div>
+            </div>
+            <div class="qr-wrapper" id="base64QR">
+                <div class="qr-code-container" id="qrCodeBase64"></div>
+                <div class="qr-info">QR Code de la somme:<br><span id="qrValueBase64">0,000000 /v/O:O\v\ </span></div>
+            </div>
+            <div class="qr-wrapper" id="specialQR">
+                <div class="qr-code-container" id="qrCodeSpecial"></div>
+                <div class="qr-info">QR Code des sommes sp&#xe9;ciales:<br><span id="qrValueSpecial">Encaiss&#xe9;: 0,000000 /v/O:O\v\<br>Cumul: 0,000000 /v/O:O\v\ </span></div>
+            </div>
+            <div class="qr-wrapper" id="na1c142QR">
+                <div class="qr-code-container" id="qrCodeNA1C142"></div>
+                <div class="qr-info">QR Code NA1C142:<br><span id="qrValueNA1C142">NA1C142: 0<br>Mot: Aso</span></div>
+            </div>
+        </div>
+        <div class="input-group">
+            <input type="password" id="base64Input" placeholder="Entrez valeur en /v/O:O\v\ ou code de r&#xe9;ception en /v/O:O\v\">
+            <div class="timer" id="timer"></div>
+        </div>
+        <div class="special-stats">
+            <div class="special-stat-item">
+                <div>Sommes sp&#xe9;ciales encaiss&#xe9;es</div>
+                <div class="special-stat-value" id="specialEntryCount">0</div>
+            </div>
+            <div class="special-stat-item">
+                <div>Cumul sp&#xe9;cial</div>
+                <div class="special-stat-value" id="specialTotalSum">0,000000 /v/O:O\v\ </div>
+            </div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div>Nombre d&apos;entr&#xe9;es</div>
+                <div class="stat-value" id="entryCount">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Moyenne par entr&#xe9;e</div>
+                <div class="stat-value" id="average">0,000000 /v/O:O\v\ </div>
+            </div>
+            <div class="stat-item">
+                <div>Somme totale</div>
+                <div class="stat-value" id="totalSum">0,000000 /v/O:O\v\</div>
+            </div>
+            <div class="stat-item">
+                <div>Supply restant</div>
+                <div class="stat-value" id="remainingSupply">144000000,000000 /v/O:O\v\ </div>
+            </div>
+            <div class="stat-item">
+                <div>Part de cr&#xe9;ation</div>
+                <div class="stat-value" id="creationPercentage">0,000000%</div>
+            </div>
+            <div class="stat-item">
+                <div>TDCN</div>
+                <div class="stat-value" id="difference" style="color: #FFA500">0,000000 /v/O:O\v\</div>
+            </div>
+            <div class="stat-item">
+                <div>EM</div>
+                <div class="stat-value" id="totalPalpable" style="color: yellow">0,000000 /v/O:O\v\</div>
+            </div>
+            <div class="stat-item">
+                <div>NA1C142</div>
+                <div class="stat-value" id="na1c142" style="color: white">0</div>
+                <div class="na1c142-word" id="na1c142word"></div>
+            </div>
+        </div>
+        <div class="results" id="resultsContainer"></div>
+        <div class="transfer-history">
+            <h3>Historique des transferts</h3>
+            <div id="transferHistory"></div>
+        </div>
+        <div class="encode-section">
+            <h3>Saisir la somme &#xe0; envoyer</h3>
+            <div class="encode-controls">
+                <input type="text" id="sumToEncode" step="0.000001" min="0" class="transfer-input" placeholder="Entrez valeur &#xe0; envoyer en /v/O:O\v\ ">
+                <button onclick="encodeSumToBase64()" class="transfer-button">Envoyer la somme</button>
+            </div>
+            <div id="encodeResult" class="encode-result"></div>
+            <div class="qr-code-container" id="encodedQrCode"></div>
+        </div>
+        <div class="na1c142-image-section">
+            <h3>Image NA1C142</h3>
+            <div class="position-controls">
+                <h4>Position des &#xe9;l&#xe9;ments</h4>
+                <div class="element-position">
+                    <label>NA1C142:</label>
+                    <input type="number" id="na1c142X" placeholder="X" value="30">
+                    <input type="number" id="na1c142Y" placeholder="Y" value="50">
+                </div>
+                <div class="element-position">
+                    <label>Mot:</label>
+                    <input type="number" id="wordX" placeholder="X" value="30">
+                    <input type="number" id="wordY" placeholder="Y" value="90">
+                </div>
+                <div class="element-position">
+                    <label>&#xc9;tape:</label>
+                    <input type="number" id="stageX" placeholder="X" value="30">
+                    <input type="number" id="stageY" placeholder="Y" value="130">
+                </div>
+                <div class="element-position">
+                    <label>QR Code:</label>
+                    <input type="number" id="qrX" placeholder="X" value="538">
+                    <input type="number" id="qrY" placeholder="Y" value="130">
+                    <input type="number" id="qrSize" placeholder="Taille" value="180">
+                </div>
+                <div class="element-position">
+                    <label>Date/Heure:</label>
+                    <input type="number" id="dateX" placeholder="X" value="30">
+                    <input type="number" id="dateY" placeholder="Y" value="290">
+                </div>
+                <button onclick="updateImagePositions()" class="transfer-button">Mettre &#xe0; jour</button>
+            </div>
+            <div class="image-controls">
+                <input type="file" id="na1c142ImageUpload" accept="image/*" class="transfer-input">
+                <div class="color-controls">
+                    <div class="color-control">
+                        <label for="textColor">Couleur du texte:</label>
+                        <input type="color" id="textColor" value="#000000" class="color-picker">
+                    </div>
+                    <div class="color-control">
+                        <label for="qrColor">Couleur du QR code:</label>
+                        <input type="color" id="qrColor" value="#000000" class="color-picker">
+                    </div>
+                </div>
+                <canvas id="na1c142Canvas" width="198mm" height="90mm" style="max-width: 100%; height: auto; border: 1px solid var(--primary-color); margin-top: 1rem; background-color: white;"></canvas>
+            </div>
+        </div>
+        <div class="evolution-controls">
+            <h3>Configuration des &#xe9;tapes d&apos;&#xe9;volution</h3>
+            <div id="evolutionStages">
+                <!-- Evolution stages will be inserted here -->
+            </div>
+        </div>
+        <script>function updateHumanFigure(currentSum) {
+  const thinFigure = document.getElementById('thinFigure');
+  const mediumFigure = document.getElementById('mediumFigure');
+  const muscularFigure = document.getElementById('muscularFigure');
+  const currentTokenDisplay = document.getElementById('currentTokenDisplay');
+  const stageInfo = document.getElementById('stageInfo');
+  const currentStage = Math.floor(currentSum / SUPPLY_PER_STAGE);
+  currentTokenDisplay.textContent = formatNumber(currentSum);
+  stageInfo.textContent = `Étape ${currentStage + 1}`;
+  thinFigure.style.opacity = '0';
+  mediumFigure.style.opacity = '0';
+  muscularFigure.style.opacity = '0';
+  if (currentStage === 0) {
+    thinFigure.style.opacity = '1';
+  } else if (currentStage >= 1 && currentStage <= 341) {
+    mediumFigure.style.opacity = '1';
+    mediumFigure.style.filter = `brightness(${1 + currentStage / 341 * 0.2})`;
+  } else if (currentStage >= 342 && currentStage <= 682) {
+    muscularFigure.style.opacity = '1';
+    muscularFigure.style.filter = `brightness(${1 + currentStage / 682 * 0.4})`;
+  } else if (currentStage >= 683) {
+    muscularFigure.style.opacity = '1';
+    muscularFigure.style.filter = `brightness(${1 + currentStage / 1024 * 0.6})`;
+  }
+  const figures = document.querySelectorAll('.human-figure');
+  figures.forEach(figure => {
+    if (currentSum > 0) {
+      figure.classList.add('growing');
+    } else {
+      figure.classList.remove('growing');
+    }
+  });
+}
+function updateEvolutionStagesUI() {
+  const evolutionStagesContainer = document.getElementById('evolutionStages');
+  evolutionStagesContainer.innerHTML = '';
+  for (let group = 0; group < Math.ceil(EVOLUTION_STAGES / 100); group++) {
+    const groupDiv = document.createElement('details');
+    groupDiv.className = 'evolution-group';
+    const groupStart = group * 100 + 1;
+    const groupEnd = Math.min((group + 1) * 100, EVOLUTION_STAGES);
+    groupDiv.innerHTML = `<summary>Étapes ${groupStart} - ${groupEnd}</summary>`;
+    const stagesDiv = document.createElement('div');
+    for (let i = group * 100; i < groupEnd; i++) {
+      const stageDiv = document.createElement('div');
+      stageDiv.className = 'evolution-stage';
+      stageDiv.innerHTML = `
+        <h4>Étape ${i + 1} <button class="delete-stage-button" onclick="deleteEvolutionImage(${i})">Supprimer</button></h4>
+        <input type="file" accept="image/*" onchange="handleEvolutionImageUpload(event, ${i})" />
+        ${evolutionImages[i] ? `<img src="${evolutionImages[i]}" class="stage-preview" />` : ''}
+        <p>Seuil: ${formatNumber(SUPPLY_PER_STAGE * i)} - ${formatNumber(SUPPLY_PER_STAGE * (i + 1))}</p>
+      `;
+      stagesDiv.appendChild(stageDiv);
+    }
+    groupDiv.appendChild(stagesDiv);
+    evolutionStagesContainer.appendChild(groupDiv);
+  }
+}
+function handleEvolutionImageUpload(event, stageIndex) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      evolutionImages[stageIndex] = e.target.result;
+      saveData();
+      updateEvolutionStagesUI();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+let timeout;
+let totalSum = 0;
+let entryCount = 0;
+let transferCount = 0;
+let specialTotalSum = 0;
+let specialEntryCount = 0;
+let timerInterval;
+let processedTokens = new Set();
+let transferHistory = [];
+let maxSupply = 144000000;
+let remainingSupply = maxSupply;
+let sentCodes = new Set();
+let chart;
+let chartData = {
+  labels: [],
+  palpableData: [],
+  numericData: [],
+  differenceData: [],
+  totalPalpableData: [],
+  entryCountData: [],
+  averageData: []
+};
+const alphabet = {
+  1: 'Aso',
+  2: 'Bbebe',
+  3: 'Cco',
+  4: 'Dtri',
+  5: 'Ees',
+  6: 'Fange',
+  7: 'Gfard',
+  8: 'Hbrivol',
+  9: 'Iinfi',
+  10: 'Jsauv',
+  11: 'Kfeu',
+  12: 'Lcieux',
+  13: 'Msang',
+  14: 'Nan',
+  15: 'Oben',
+  16: 'Pcube',
+  17: 'Qhein',
+  18: 'Rcoup',
+  19: 'Spur',
+  20: 'Tsouf',
+  21: 'Ulien',
+  22: 'Vdiv',
+  23: 'Wfoch',
+  24: 'Xind',
+  25: 'Ychoix',
+  26: 'Zlev'
+};
+const EVOLUTION_STAGES = 12000;
+const SUPPLY_PER_STAGE = maxSupply / EVOLUTION_STAGES;
+const NA1C142_FACTOR = 0.00000694444444444444;
+let evolutionImages = Array(EVOLUTION_STAGES).fill(null);
+function convertNA1C142ToWord(num) {
+  if (Math.floor(num) <= 0) {
+    return "";
+  }
+  let result = "";
+  while (num > 0) {
+    let digit = Math.floor(num % 26);
+    if (digit === 0) {
+      digit = 26;
+    }
+    if (result) {
+      result = "-" + result;
+    }
+    result = alphabet[digit] + result;
+    num = Math.floor((num - digit) / 26);
+  }
+  return result;
+}
+const base64Input = document.getElementById('base64Input');
+const timerDisplay = document.getElementById('timer');
+const qrCode = new QRCode(document.getElementById("qrCode"), {
+  width: 150,
+  height: 150,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H
+});
+const qrCodeBase64 = new QRCode(document.getElementById("qrCodeBase64"), {
+  width: 150,
+  height: 150,
+  colorDark: "#0000FF",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H
+});
+const qrCodeSpecial = new QRCode(document.getElementById("qrCodeSpecial"), {
+  width: 150,
+  height: 150,
+  colorDark: "#ff8c00",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H
+});
+const qrCodeNA1C142 = new QRCode(document.getElementById("qrCodeNA1C142"), {
+  width: 150,
+  height: 150,
+  colorDark: "#40E0D0",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H
+});
+const encodedQrCode = new QRCode(document.getElementById("encodedQrCode"), {
+  width: 150,
+  height: 150,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.M
+});
+function loadSavedData() {
+  const savedData = localStorage.getItem('dbMwollowmData');
+  if (savedData) {
+    const data = JSON.parse(savedData);
+    totalSum = data.totalSum || 0;
+    entryCount = data.entryCount || 0;
+    transferCount = data.transferCount || 0;
+    specialTotalSum = data.specialTotalSum || 0;
+    specialEntryCount = data.specialEntryCount || 0;
+    remainingSupply = data.remainingSupply || maxSupply;
+    processedTokens = new Set(data.processedTokens || []);
+    transferHistory = data.transferHistory || [];
+    sentCodes = new Set(data.sentCodes || []);
+    if (data.chartData) {
+      chartData.labels = data.chartData.labels || [];
+      chartData.palpableData = data.chartData.palpableData || [];
+      chartData.numericData = data.chartData.numericData || [];
+      chartData.differenceData = data.chartData.differenceData || [];
+      chartData.totalPalpableData = data.chartData.totalPalpableData || [];
+      chartData.entryCountData = data.chartData.entryCountData || [];
+      chartData.averageData = data.chartData.averageData || [];
+      updateTokenChart();
+    }
+    if (data.totalPalpableTokens) {
+      document.getElementById('totalPalpable').textContent = formatNumber(data.totalPalpableTokens);
+    }
+    if (data.evolutionImages) {
+      evolutionImages = data.evolutionImages;
+      updateEvolutionStagesUI();
+    }
+    updateStats();
+    updateSpecialStats();
+    displayTransferHistory();
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (data.results) {
+      data.results.forEach(result => {
+        const resultItem = document.createElement('div');
+        resultItem.className = `result-item${result.isInvalid ? ' invalid' : ''}`;
+        resultItem.innerHTML = result.html;
+        resultsContainer.appendChild(resultItem);
+      });
+    }
+  }
+  updateHumanFigure(totalSum);
+}
+function isResetToken(base64String) {
+  try {
+    if (base64String === "MSwxODM1OTc=") {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+function saveData() {
+  const resultsContainer = document.getElementById('resultsContainer');
+  const results = Array.from(resultsContainer.children).map(item => ({
+    html: item.innerHTML,
+    isInvalid: item.classList.contains('invalid')
+  }));
+  const currentPalpableTokens = maxSupply - remainingSupply;
+  const totalPalpableTokens = currentPalpableTokens + totalSum;
+  const dataToSave = {
+    totalSum,
+    entryCount,
+    processedTokens: Array.from(processedTokens),
+    results,
+    transferCount,
+    specialTotalSum,
+    specialEntryCount,
+    transferHistory,
+    remainingSupply,
+    sentCodes: Array.from(sentCodes),
+    chartData: {
+      labels: chartData.labels,
+      palpableData: chartData.palpableData,
+      numericData: chartData.numericData,
+      differenceData: chartData.differenceData,
+      totalPalpableData: chartData.totalPalpableData,
+      entryCountData: chartData.entryCountData,
+      averageData: chartData.averageData
+    },
+    totalPalpableTokens,
+    evolutionImages: evolutionImages
+  };
+  localStorage.setItem('dbMwollowmData', JSON.stringify(dataToSave));
+}
+function formatNumber(num) {
+  return `${Number(num.toFixed(6)).toString().replace('.', ',')} /v/O:O\\v\\`;
+}
+function updateStats() {
+  document.getElementById('entryCount').textContent = entryCount;
+  const average = entryCount > 0 ? totalSum / entryCount : 0;
+  document.getElementById('average').textContent = formatNumber(average);
+  document.getElementById('totalSum').textContent = formatNumber(totalSum);
+  document.getElementById('remainingSupply').textContent = formatNumber(remainingSupply);
+  document.getElementById('qrValue').textContent = formatNumber(totalSum);
+  document.getElementById('qrValueBase64').textContent = formatNumber(totalSum);
+  document.getElementById('creationPercentage').textContent = `${((maxSupply - remainingSupply) / maxSupply * 100).toFixed(6).replace('.', ',')}%`;
+  const palpableTokens = maxSupply - remainingSupply;
+  const difference = palpableTokens - totalSum;
+  document.getElementById('difference').textContent = formatNumber(difference);
+  const currentPalpableTokens = maxSupply - remainingSupply;
+  const totalPalpableTokens = currentPalpableTokens + totalSum;
+  const totalSumDisplays = document.querySelectorAll('.stat-value[id="totalSum"]');
+  totalSumDisplays.forEach(display => {
+    display.textContent = formatNumber(totalSum);
+  });
+  document.getElementById('totalPalpable').textContent = formatNumber(totalPalpableTokens);
+  const na1c142 = Math.floor(totalSum / NA1C142_FACTOR);
+  document.getElementById('na1c142').textContent = na1c142;
+  const na1c142Word = na1c142 > 0 ? convertNA1C142ToWord(na1c142) : '';
+  document.getElementById('na1c142word').textContent = na1c142Word;
+  updateQRCodes(totalSum);
+  updateTokenChart();
+  updateHumanFigure(totalSum);
+}
+function updateTokenChart() {
+  const palpableTokens = maxSupply - remainingSupply;
+  const numericTokens = totalSum;
+  const difference = palpableTokens - numericTokens;
+  const totalPalpableTokens = palpableTokens + totalSum;
+  const average = entryCount > 0 ? totalSum / entryCount : 0;
+  chartData.labels.push(new Date().toLocaleTimeString());
+  chartData.palpableData.push(palpableTokens);
+  chartData.numericData.push(numericTokens);
+  chartData.differenceData.push(difference);
+  chartData.totalPalpableData.push(totalPalpableTokens);
+  chartData.entryCountData.push(entryCount);
+  chartData.averageData.push(average);
+  if (chartData.labels.length > 10) {
+    chartData.labels.shift();
+    chartData.palpableData.shift();
+    chartData.numericData.shift();
+    chartData.differenceData.shift();
+    chartData.totalPalpableData.shift();
+    chartData.entryCountData.shift();
+    chartData.averageData.shift();
+  }
+  if (!chart) {
+    const ctx = document.getElementById('tokenChart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          type: 'bar',
+          label: 'EM',
+          data: chartData.totalPalpableData,
+          backgroundColor: 'rgba(255, 255, 0, 0.2)',
+          borderColor: 'rgba(255, 255, 0, 0)',
+          fill: true,
+          order: 6
+        }, {
+          type: 'bar',
+          label: 'Nombre d\'entrées',
+          data: chartData.entryCountData,
+          backgroundColor: 'rgba(255, 105, 180, 0.3)',
+          borderColor: '#FF69B4',
+          borderWidth: 2,
+          order: 4
+        }, {
+          label: 'TPI',
+          data: chartData.palpableData,
+          borderColor: '#40E0D0',
+          tension: 0.4,
+          fill: false,
+          order: 1
+        }, {
+          label: 'TNI',
+          data: chartData.numericData,
+          borderColor: 'lime',
+          tension: 0.4,
+          fill: false,
+          order: 2
+        }, {
+          label: 'TDCN',
+          data: chartData.differenceData,
+          borderColor: '#FFA500',
+          tension: 0.4,
+          fill: false,
+          order: 3
+        }, {
+          label: 'Moyenne par entrée',
+          data: chartData.averageData,
+          borderColor: '#9370DB',
+          tension: 0.4,
+          fill: false,
+          order: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: 'white'
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          x: {
+            ticks: {
+              color: 'white'
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: 'white'
+            }
+          }
+        }
+      }
+    });
+  } else {
+    chart.data.labels = chartData.labels;
+    chart.data.datasets[0].data = chartData.totalPalpableData;
+    chart.data.datasets[1].data = chartData.entryCountData;
+    chart.data.datasets[2].data = chartData.palpableData;
+    chart.data.datasets[3].data = chartData.numericData;
+    chart.data.datasets[4].data = chartData.differenceData;
+    chart.data.datasets[5].data = chartData.averageData;
+    chart.update();
+  }
+}
+function updateSpecialStats() {
+  document.getElementById('specialEntryCount').textContent = specialEntryCount;
+  document.getElementById('specialTotalSum').textContent = formatNumber(specialTotalSum);
+  updateQRCodes(totalSum);
+}
+function displayTransferHistory() {
+  const historyContainer = document.getElementById('transferHistory');
+  historyContainer.innerHTML = '';
+  transferHistory.forEach((transfer, index) => {
+    const transferItem = document.createElement('div');
+    transferItem.className = 'transfer-item';
+    transferItem.innerHTML = `Transfert #${index + 1}: <span class="transfer-amount">${formatNumber(transfer.amount)}</span> (${new Date(transfer.date).toLocaleString()})`;
+    historyContainer.appendChild(transferItem);
+  });
+}
+function startTimer() {
+  let timeLeft = 3;
+  timerDisplay.textContent = `${timeLeft}s`;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = `${timeLeft}s`;
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerDisplay.textContent = '';
+    }
+  }, 1000);
+}
+base64Input.addEventListener('input', () => {
+  clearTimeout(timeout);
+  startTimer();
+  timeout = setTimeout(() => {
+    const inputValue = base64Input.value.trim();
+    if (!/^[A-Za-z0-9+/=]*$/.test(inputValue)) {
+      addResult("Format non reconnu - caractères invalides", totalSum, "", true);
+      base64Input.value = '';
+      return;
+    }
+    if (processedTokens.has(inputValue)) {
+      addResult("Token déjà utilisé", totalSum, "Token dupliqué", true);
+      base64Input.value = '';
+      return;
+    }
+    if (inputValue.includes('-') || inputValue.includes('LQ==') || atob(inputValue).includes('-')) {
+      if (sentCodes.has(inputValue)) {
+        addResult("Impossible d'encaisser votre propre code d'envoi", totalSum, "Code d'envoi personnel", true);
+        base64Input.value = '';
+        return;
+      }
+      try {
+        const decodedText = atob(inputValue);
+        if (decodedText.includes('|transfer')) {
+          try {
+            const economyInfo = JSON.parse(decodedText.split('|')[1]);
+            const extractedNumber = parseFloat(economyInfo.sum);
+            const receivedRemainingSupply = parseFloat(economyInfo.remainingSupply);
+            const currentPalpableTokens = maxSupply - remainingSupply;
+            const receivedPalpableTokens = maxSupply - receivedRemainingSupply;
+            const totalPalpableTokens = receivedPalpableTokens + totalSum;
+            document.getElementById('totalPalpable').textContent = formatNumber(totalPalpableTokens);
+            if (extractedNumber !== null) {
+              if (receivedPalpableTokens > currentPalpableTokens) {
+                remainingSupply = receivedRemainingSupply;
+                addResult(`Code d'envoi reçu avec nouvelle création monétaire: ${formatNumber(extractedNumber)}<br>
+                                                                      Émetteur - Somme totale: ${formatNumber(parseFloat(economyInfo.totalSum))}<br>
+                                                                      Émetteur - Supply restant: ${formatNumber(parseFloat(economyInfo.remainingSupply))}<br>
+                                                                      Émetteur - Part de création: ${economyInfo.creationPercentage.replace('.', ',')}%<br>
+                                                                      Émetteur - Tokens palpables en circulation: ${formatNumber(receivedPalpableTokens)}<br>
+                                                                      <span style="color: #FF69B4">Émetteur - Nombre d'entrées: ${economyInfo.entryCount}</span><br>
+                                                                      <span style="color: yellow">Palpables en circulations créé et réels: ${formatNumber(totalPalpableTokens)}</span>`, totalSum, "", false);
+              } else {
+                addResult(`Code d'envoi reçu (création monétaire conservée): ${formatNumber(extractedNumber)}<br>
+                                                                      Création monétaire actuelle conservée car supérieure<br>
+                                                                      Émetteur - Tokens palpables en circulation: ${formatNumber(receivedPalpableTokens)}<br>
+                                                                      <span style="color: #FF69B4">Émetteur - Nombre d'entrées: ${economyInfo.entryCount}</span><br>
+                                                                      <span style="color: yellow">Palpables en circulations créé et réels: ${formatNumber(totalPalpableTokens)}</span>`, totalSum, "", false);
+              }
+              totalSum += extractedNumber;
+              entryCount++;
+              updateStats();
+              processedTokens.add(inputValue);
+              saveData();
+            }
+          } catch (error) {
+            addResult("Format de code d'envoi non reconnu", totalSum, "", true);
+          }
+        }
+      } catch (error) {
+        addResult("Format de code d'envoi non reconnu", totalSum, "", true);
+      }
+      base64Input.value = '';
+      return;
+    }
+    if (isResetToken(inputValue)) {
+      const oldTotal = totalSum;
+      totalSum = 0;
+      entryCount = 0;
+      processedTokens.add(inputValue);
+      addResult("Réinitialisation de l'application", totalSum, `Ancien total: ${formatNumber(oldTotal)}`, false);
+      updateStats();
+      saveData();
+      base64Input.value = '';
+      return;
+    }
+    try {
+      const decodedText = atob(inputValue);
+      if (decodedText.includes('_')) {
+        const [value, metadata] = decodedText.split('_');
+        const extractedNumber = parseFloat(value);
+        if (!isNaN(extractedNumber)) {
+          if (extractedNumber > remainingSupply) {
+            addResult("Création monétaire impossible : dépassement du supply restant", totalSum, "", true);
+            base64Input.value = '';
+            return;
+          }
+          const adjustedNumber = Number(extractedNumber.toFixed(6));
+          remainingSupply = Number((remainingSupply - adjustedNumber).toFixed(6));
+          totalSum = Number((totalSum + adjustedNumber).toFixed(6));
+          entryCount++;
+          addResult(`Format spécial détecté: ${decodedText}`, totalSum, `Supply restant: ${formatNumber(remainingSupply)}`, false);
+          updateStats();
+          processedTokens.add(inputValue);
+          saveData();
+          base64Input.value = '';
+          return;
+        }
+      }
+      const extractedNumber = extractNumberBetweenPipes(decodedText);
+      if (extractedNumber !== null) {
+        if (extractedNumber > remainingSupply) {
+          addResult("Création monétaire impossible : dépassement du supply restant", totalSum, "", true);
+          base64Input.value = '';
+          return;
+        }
+        const adjustedNumber = Number(extractedNumber.toFixed(6));
+        remainingSupply = Number((remainingSupply - adjustedNumber).toFixed(6));
+        totalSum = Number((totalSum + adjustedNumber).toFixed(6));
+        entryCount++;
+        addResult(decodedText, totalSum, `Supply restant: ${formatNumber(remainingSupply)}`, false);
+        updateStats();
+        processedTokens.add(inputValue);
+        saveData();
+      } else {
+        addResult(decodedText, totalSum, "Format invalide", true);
+      }
+    } catch (error) {
+      addResult("Format non reconnu", totalSum, "", true);
+    }
+    base64Input.value = '';
+  }, 3000);
+});
+function extractNumberBetweenPipes(text) {
+  const match = text.match(/\|([\d.]+)\|/);
+  if (match) {
+    const num = parseFloat(match[1]);
+    return Number(num.toFixed(6));
+  }
+  return null;
+}
+function addResult(text, totalSum, extraMessage = "", isInvalid = false) {
+  const resultsContainer = document.getElementById('resultsContainer');
+  const resultItem = document.createElement('div');
+  resultItem.className = `result-item${isInvalid ? ' invalid' : ''}`;
+  const formattedTotal = formatNumber(totalSum).replace(' /v/O:O\\v\\', '');
+  resultItem.innerHTML = `Résultat : <span>${text}</span><br> Total cumulé : <span>${formattedTotal} /v/O:O\\v\\</span> ${extraMessage ? `<br>${extraMessage}` : ''}<br>Part de création : <span>${((maxSupply - remainingSupply) / maxSupply * 100).toFixed(6).replace('.', ',')}%</span>`;
+  resultsContainer.insertBefore(resultItem, resultsContainer.firstChild);
+  saveData();
+  updateHumanFigure(totalSum);
+}
+function updateQRCodes(total) {
+  const formattedTotal = formatNumber(total);
+  const base64Total = btoa(formattedTotal);
+  qrCode.clear();
+  qrCode.makeCode(formattedTotal);
+  qrCodeBase64.clear();
+  qrCodeBase64.makeCode(base64Total);
+  const specialData = {
+    specialEntryCount: specialEntryCount,
+    specialTotalSum: specialTotalSum
+  };
+  qrCodeSpecial.clear();
+  qrCodeSpecial.makeCode(btoa(JSON.stringify(specialData)));
+  document.getElementById('qrValueSpecial').innerHTML = `Encaissé: ${formatNumber(specialTotalSum)}<br>Cumul: ${specialEntryCount}`;
+  const na1c142Value = Math.floor(total / 0.00000694444444444444);
+  const na1c142Word = total >= 0.00000694444444444444 ? convertNA1C142ToWord(na1c142Value) : '';
+  const na1c142Data = {
+    value: na1c142Value,
+    word: na1c142Word.replace(/([A-Z])/g, '-$1').replace(/^-/, ''),
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString()
+  };
+  qrCodeNA1C142.clear();
+  qrCodeNA1C142.makeCode(JSON.stringify(na1c142Data));
+  document.getElementById('qrValueNA1C142').innerHTML = `NA1C142: ${na1c142Value}${na1c142Word ? `<br>Mot: ${na1c142Word}` : ''}`;
+}
+updateQRCodes(0);
+document.querySelectorAll('.qr-button').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.qr-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.qr-wrapper').forEach(wrapper => wrapper.classList.remove('active'));
+    button.classList.add('active');
+    const qrType = button.dataset.qr;
+    if (qrType === 'standard') {
+      document.getElementById('standardQR').classList.add('active');
+    } else if (qrType === 'base64') {
+      document.getElementById('base64QR').classList.add('active');
+    } else if (qrType === 'special') {
+      document.getElementById('specialQR').classList.add('active');
+    } else if (qrType === 'na1c142') {
+      document.getElementById('na1c142QR').classList.add('active');
+    }
+  });
+});
+document.getElementById('transferButton').addEventListener('click', () => {
+  if (totalSum <= 0) {
+    alert('Aucune somme à transférer');
+    return;
+  }
+  document.getElementById('transferButton').style.display = 'none';
+  document.querySelector('.transfer-controls').style.display = 'flex';
+  document.getElementById('transferAmount').max = totalSum;
+  document.getElementById('transferAmount').value = totalSum;
+});
+document.getElementById('confirmTransfer').addEventListener('click', () => {
+  const transferAmount = parseFloat(document.getElementById('transferAmount').value);
+  if (isNaN(transferAmount) || transferAmount <= 0) {
+    alert('Veuillez entrer un montant valide');
+    return;
+  }
+  if (transferAmount > totalSum) {
+    alert('Le montant à transférer ne peut pas être supérieur à la somme totale');
+    return;
+  }
+  const transferToken = btoa(`Transfer_${++transferCount}|${transferAmount}|`);
+  transferHistory.push({
+    amount: transferAmount,
+    date: new Date().toISOString()
+  });
+  totalSum -= transferAmount;
+  addResult(`Transfert de la somme: ${formatNumber(transferAmount)}`, totalSum, "Somme transférée", false);
+  updateStats();
+  displayTransferHistory();
+  saveData();
+  processedTokens.add(transferToken);
+  document.getElementById('transferButton').style.display = 'block';
+  document.querySelector('.transfer-controls').style.display = 'none';
+  const formattedSum = transferAmount.toFixed(6);
+  const formatted = `|${formattedSum}|0`;
+  const encoded = btoa(formatted).replace(/\+/g, 'f').replace(/\//g, 'D');
+  sentCodes.add(encoded);
+  const resultDiv = document.getElementById("encodeResult");
+  resultDiv.innerHTML = `<div>Somme d'origine: <span style="color: var(--primary-color)">${formatNumber(transferAmount)}</span></div><div>Format encodé: <span style="color: var(--primary-color)">${encoded}</span></div>`;
+  encodedQrCode.clear();
+  encodedQrCode.makeCode(encoded);
+  resetEncodedQRCode();
+  alert('La somme a été transférée et encodée avec succès.');
+});
+document.getElementById('cancelTransfer').addEventListener('click', () => {
+  document.getElementById('transferButton').style.display = 'block';
+  document.querySelector('.transfer-controls').style.display = 'none';
+});
+document.addEventListener('DOMContentLoaded', () => {
+  loadSavedData();
+  updateEvolutionStagesUI();
+});
+function drawNA1C142Content(ctx, textColor, qrColor, positions = null) {
+  const na1c142Value = Math.floor(totalSum / 0.00000694444444444444);
+  const na1c142Word = totalSum >= 0.00000694444444444444 ? convertNA1C142ToWord(na1c142Value) : '';
+  if (!positions) {
+    positions = {
+      na1c142: {
+        x: 30,
+        y: 50,
+        text: `NA1C142: ${na1c142Value}`
+      },
+      word: {
+        x: 30,
+        y: 90,
+        text: na1c142Word ? `Mot: ${na1c142Word.replace(/([A-Z])/g, '-$1').replace(/^-/, '')}` : ''
+      },
+      stage: {
+        x: 30,
+        y: 130,
+        text: getStageText(Math.floor(totalSum / SUPPLY_PER_STAGE))
+      },
+      qr: {
+        x: ctx.canvas.width - 210,
+        y: ctx.canvas.height - 210,
+        width: 180,
+        height: 180
+      },
+      date: {
+        x: 30,
+        y: ctx.canvas.height - 50,
+        text: `Date: ${new Date().toLocaleDateString()}`
+      },
+      time: {
+        x: 30,
+        y: ctx.canvas.height - 25,
+        text: `Heure: ${new Date().toLocaleTimeString()}`
+      }
+    };
+  } else {
+    if (!positions.time) {
+      positions.time = {
+        x: positions.date ? positions.date.x : 30,
+        y: positions.date ? positions.date.y + 25 : ctx.canvas.height - 25,
+        text: `Heure: ${new Date().toLocaleTimeString()}`
+      };
+    }
+    if (!positions.date) {
+      positions.date = {
+        x: 30,
+        y: ctx.canvas.height - 50,
+        text: `Date: ${new Date().toLocaleDateString()}`
+      };
+    }
+  }
+  ctx.fillStyle = textColor;
+  ctx.font = 'bold 24px Arial';
+  ctx.fillText(positions.na1c142.text, positions.na1c142.x, positions.na1c142.y);
+  ctx.fillText(positions.word.text, positions.word.x, positions.word.y);
+  ctx.font = '18px Arial';
+  ctx.fillText(positions.stage.text, positions.stage.x, positions.stage.y);
+  ctx.font = '16px Arial';
+  ctx.fillText(positions.date.text, positions.date.x, positions.date.y);
+  ctx.fillText(positions.time.text, positions.time.x, positions.time.y);
+  let tempDiv = document.createElement('div');
+  let tempQR = new QRCode(tempDiv, {
+    text: JSON.stringify({
+      value: na1c142Value,
+      word: na1c142Word,
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString(),
+      evolutionStage: Math.floor(totalSum / SUPPLY_PER_STAGE) + 1
+    }),
+    width: positions.qr.width,
+    height: positions.qr.height,
+    colorDark: qrColor,
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  setTimeout(() => {
+    let qrCanvas = tempDiv.querySelector('canvas');
+    if (qrCanvas) {
+      ctx.drawImage(qrCanvas, positions.qr.x, positions.qr.y, positions.qr.width, positions.qr.height);
+    }
+    tempDiv.remove();
+  }, 100);
+}
+function getStageText(stage) {
+  if (stage >= 683) {
+    return `Étape ${stage + 1} (Évolution ultime)`;
+  } else if (stage >= 342) {
+    return `Étape ${stage + 1} (Évolution supérieure)`;
+  } else if (stage >= 1) {
+    return `Étape ${stage + 1} (Évolution intermédiaire)`;
+  }
+  return `Étape d'évolution: ${stage + 1}`;
+}
+function updateImagePositions() {
+  const positions = {
+    na1c142: {
+      x: parseInt(document.getElementById('na1c142X').value),
+      y: parseInt(document.getElementById('na1c142Y').value),
+      text: `NA1C142: ${Math.floor(totalSum / 0.00000694444444444444)}`
+    },
+    word: {
+      x: parseInt(document.getElementById('wordX').value),
+      y: parseInt(document.getElementById('wordY').value),
+      text: `Mot: ${convertNA1C142ToWord(Math.floor(totalSum / 0.00000694444444444444))}`
+    },
+    stage: {
+      x: parseInt(document.getElementById('stageX').value),
+      y: parseInt(document.getElementById('stageY').value),
+      text: getStageText(Math.floor(totalSum / SUPPLY_PER_STAGE))
+    },
+    qr: {
+      x: parseInt(document.getElementById('qrX').value),
+      y: parseInt(document.getElementById('qrY').value),
+      width: parseInt(document.getElementById('qrSize').value),
+      height: parseInt(document.getElementById('qrSize').value)
+    },
+    date: {
+      x: parseInt(document.getElementById('dateX').value),
+      y: parseInt(document.getElementById('dateY').value),
+      text: `Date: ${new Date().toLocaleDateString()}`
+    },
+    time: {
+      x: parseInt(document.getElementById('dateX').value),
+      y: parseInt(document.getElementById('dateY').value) + 25,
+      text: `Heure: ${new Date().toLocaleTimeString()}`
+    }
+  };
+  let img = document.createElement('img');
+  img.src = document.getElementById('na1c142Canvas').toDataURL();
+  img.onload = function () {
+    drawNA1C142Image(img, positions);
+  };
+}
+function drawNA1C142Image(img, positions = null) {
+  let canvas = document.getElementById('na1c142Canvas');
+  canvas.width = 748;
+  canvas.height = 340;
+  let ctx = canvas.getContext('2d');
+  let textColor = document.getElementById('textColor').value;
+  let qrColor = document.getElementById('qrColor').value;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const currentStage = Math.floor(totalSum / SUPPLY_PER_STAGE);
+  if (evolutionImages[currentStage]) {
+    let evolutionImg = new Image();
+    evolutionImg.onload = function () {
+      ctx.drawImage(evolutionImg, canvas.width - 300, 20, 120, 240);
+      drawNA1C142Content(ctx, textColor, qrColor, positions);
+    };
+    evolutionImg.src = evolutionImages[currentStage];
+  } else {
+    drawNA1C142Content(ctx, textColor, qrColor, positions);
+  }
+}
+function encodeSumToBase64() {
+  const sumInput = document.getElementById("sumToEncode");
+  const resultDiv = document.getElementById("encodeResult");
+  if (totalSum <= 0) {
+    resultDiv.innerHTML = '<span style="color: var(--error-color);">Impossible d\'encoder : aucun solde disponible. La création monétaire doit passer par le champ "Entrez valeur en /v/O:O\\v\\ ou code de réception en /v/O:O\\v\\"</span>';
+    encodedQrCode.clear();
+    return;
+  }
+  const sum = parseFloat(sumInput.value);
+  if (isNaN(sum) || sum < 0) {
+    resultDiv.innerHTML = '<span style="color: var(--error-color);">Veuillez entrer une somme valide</span>';
+    return;
+  }
+  if (sum > totalSum) {
+    resultDiv.innerHTML = '<span style="color: var(--error-color);">La somme demandée dépasse le solde disponible</span>';
+    return;
+  }
+  totalSum -= sum;
+  const formattedSum = sum.toFixed(6);
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  const economyInfo = {
+    sum: formattedSum,
+    totalSum: totalSum.toFixed(6),
+    remainingSupply: remainingSupply.toFixed(6),
+    creationPercentage: ((maxSupply - remainingSupply) / maxSupply * 100).toFixed(6),
+    entryCount: entryCount
+  };
+  let formatted = `|${JSON.stringify(economyInfo)}|${timestamp}-${random}|transfer`;
+  if (formatted.length > 500) {
+    const shortInfo = {
+      sum: formattedSum,
+      ts: totalSum.toFixed(6),
+      ec: entryCount
+    };
+    formatted = `|${JSON.stringify(shortInfo)}|${timestamp}|t`;
+  }
+  const encoded = btoa(formatted).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  resultDiv.innerHTML = `<div>Somme d'origine: <span style="color: var(--primary-color)">${formatNumber(sum)}</span></div>
+                        <div>Format encodé: <span style="color: var(--primary-color)">${encoded}</span></div>`;
+  encodedQrCode.clear();
+  encodedQrCode.makeCode(encoded);
+  sumInput.value = '';
+  addResult(`Encodage et soustraction de la somme: ${formatNumber(sum)}`, totalSum, "Somme encodée et soustraite", false);
+  updateStats();
+  updateHumanFigure(totalSum);
+  saveData();
+}
+function resetEncodedQRCode() {
+  const qrContainer = document.getElementById("encodedQrCode");
+  qrContainer.innerHTML = '';
+  const newQR = new QRCode(qrContainer, {
+    width: 150,
+    height: 150,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+document.getElementById('resetButton').addEventListener('click', () => {
+  if (confirm('Êtes-vous sûr de vouloir réinitialiser l\'application ? Cette action effacera toutes les données.')) {
+    const oldTotal = totalSum;
+    totalSum = 0;
+    entryCount = 0;
+    transferCount = 0;
+    specialTotalSum = 0;
+    specialEntryCount = 0;
+    remainingSupply = maxSupply;
+    processedTokens.clear();
+    sentCodes.clear();
+    transferHistory = [];
+    document.getElementById('resultsContainer').innerHTML = '';
+    document.getElementById('transferHistory').innerHTML = '';
+    addResult("Réinitialisation manuelle de l'application", totalSum, `Ancien total: ${formatNumber(oldTotal)}`, false);
+    updateStats();
+    updateSpecialStats();
+    displayTransferHistory();
+    saveData();
+    updateHumanFigure(0);
+  }
+});
+document.getElementById('na1c142ImageUpload').addEventListener('change', function (event) {
+  let file = event.target.files[0];
+  let reader = new FileReader();
+  reader.onload = function (e) {
+    let img = new Image();
+    img.onload = function () {
+      drawNA1C142Image(img);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('textColor').addEventListener('input', function () {
+  let img = document.createElement('img');
+  img.src = document.getElementById('na1c142Canvas').toDataURL();
+  img.onload = function () {
+    drawNA1C142Image(img);
+  };
+});
+document.getElementById('qrColor').addEventListener('input', function () {
+  let img = document.createElement('img');
+  img.src = document.getElementById('na1c142Canvas').toDataURL();
+  img.onload = function () {
+    drawNA1C142Image(img);
+  };
+});
+function deleteEvolutionImage(stageIndex) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) {
+    evolutionImages[stageIndex] = null;
+    saveData();
+    updateEvolutionStagesUI();
+  }
+}
+function isValidBase64(str) {
+  try {
+    return btoa(atob(str)) == str;
+  } catch (err) {
+    return false;
+  }
+}</script>
+</div></body>
+</html>
