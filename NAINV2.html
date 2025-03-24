@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NA1C142 MWOLLOWM</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: #0f0;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px var(--couleur-neon), 0 0 20px var(--couleur-neon);
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 400px;
+            height: 100px;
+            font-size: 16px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 2px solid var(--couleur-neon);
+            border-radius: 5px;
+            background-color: #000;
+            color: var(--couleur-neon);
+            resize: none;
+        }
+        textarea::placeholder {
+            color: var(--couleur-neon);
+            opacity: 0.7;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--couleur-neon);
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: var(--couleur-neon-hover);
+            box-shadow: 0 0 10px var(--couleur-neon), 0 0 20px var(--couleur-neon);
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--couleur-neon);
+            white-space: pre-wrap;
+            text-shadow: 0 0 5px var(--couleur-neon);
+        }
+        #visage {
+            margin-top: 20px;
+            width: 300px;
+            height: 300px;
+            background-image: url('visage-ferme.jpg'); /* Image par défaut (visage fermé) */
+            background-size: cover;
+            border: 2px solid var(--couleur-neon);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--couleur-neon), 0 0 40px var(--couleur-neon);
+            transition: background-image 0.2s ease-in-out;
+        }
+        .parle {
+            background-image: url('visage-ouvert.jpg'); /* Image animée (visage ouvert) */
+        }
+        #imageUpload {
+            margin-top: 20px;
+            color: var(--couleur-neon);
+        }
+        #colorPicker {
+            margin-top: 20px;
+            padding: 5px;
+            background-color: #000;
+            color: var(--couleur-neon);
+            border: 2px solid var(--couleur-neon);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>NA1C142 MWOLLOWM</h1>
+    <textarea id="inputText" placeholder="esansoufcoupeslev..."></textarea>
+    <div>
+        <button onclick="convertirTexte()">Convertir</button>
+        <button onclick="lireTexte()">Lire le texte</button>
+        <button onclick="copierTexte()">Copier le texte</button>
+        <button onclick="reinitialiserInterface()">Réinitialiser</button>
+        <button onclick="ouvrirVideo()">Regarder la vidéo</button> <!-- Nouveau bouton -->
+    </div>
+    <textarea id="inputConvertedText" placeholder="Collez ou saisissez le mot converti ici..."></textarea>
+    <div>
+        <button onclick="retrouverOriginal()">Retrouver la lettre</button>
+    </div>
+    <div id="output"></div>
+    <div id="visage"></div>
+    <input type="file" id="imageUpload" accept="image/*" onchange="chargerImage()" />
+    <label for="imageUpload" style="color: var(--couleur-neon); margin-top: 10px;">Choisir une image locale</label>
+    <select id="colorPicker" onchange="changerCouleur()">
+        <option value="#0f0">Vert (Matrix)</option>
+        <option value="#00f">Bleu</option>
+        <option value="#f00">Rouge</option>
+        <option value="#ff0">Jaune</option>
+        <option value="#f0f">Magenta</option>
+        <option value="#0ff">Cyan</option>
+    </select>
+
+    <script>
+        const alphabet = {
+            'A': 'so',
+            'B': 'bebe',
+            'C': 'co',
+            'D': 'tri',
+            'E': 'es',
+            'F': 'ange',
+            'G': 'fard',
+            'H': 'brivol',
+            'I': 'infi',
+            'J': 'sauv',
+            'K': 'feu',
+            'L': 'cieux',
+            'M': 'sang',
+            'N': 'an',
+            'O': 'ben',
+            'P': 'cube',
+            'Q': 'hein',
+            'R': 'coup',
+            'S': 'pur',
+            'T': 'souf',
+            'U': 'lien',
+            'V': 'div',
+            'W': 'foch',
+            'X': 'ind',
+            'Y': 'choix',
+            'Z': 'lev',
+            ' ': '  ' // Double espace pour les espaces
+        };
+
+        // Dictionnaire inversé pour décoder le texte
+        const alphabetInverse = {
+            'so': 'A',
+            'bebe': 'B',
+            'co': 'C',
+            'tri': 'D',
+            'es': 'E',
+            'ange': 'F',
+            'fard': 'G',
+            'brivol': 'H',
+            'infi': 'I',
+            'sauv': 'J',
+            'feu': 'K',
+            'cieux': 'L',
+            'sang': 'M',
+            'an': 'N',
+            'ben': 'O',
+            'cube': 'P',
+            'hein': 'Q',
+            'coup': 'R',
+            'pur': 'S',
+            'souf': 'T',
+            'lien': 'U',
+            'div': 'V',
+            'foch': 'W',
+            'ind': 'X',
+            'choix': 'Y',
+            'lev': 'Z',
+            '  ': ' ' // Double espace pour les espaces
+        };
+
+        let texteConverti = "";
+
+        // Définir la couleur neon par défaut
+        let couleurNeon = "#0f0";
+        document.documentElement.style.setProperty('--couleur-neon', couleurNeon);
+        document.documentElement.style.setProperty('--couleur-neon-hover', "#00ff00");
+
+        function convertirTexte() {
+            const inputText = document.getElementById('inputText').value.toUpperCase();
+            texteConverti = "";
+
+            for (let lettre of inputText) {
+                if (alphabet[lettre]) {
+                    texteConverti += alphabet[lettre];
+                } else {
+                    texteConverti += lettre; // Conserver les caractères non définis
+                }
+            }
+
+            // Afficher le texte converti dans l'élément #output
+            document.getElementById('output').textContent = texteConverti;
+        }
+
+        function retrouverOriginal() {
+            const texteConverti = document.getElementById('inputConvertedText').value;
+            let texteOriginal = "";
+
+            // Découper le texte converti en mots
+            const mots = texteConverti.split('  '); // Utiliser le double espace comme séparateur
+            for (const mot of mots) {
+                if (alphabetInverse[mot]) {
+                    texteOriginal += alphabetInverse[mot];
+                } else {
+                    texteOriginal += mot; // Conserver les mots non définis
+                }
+            }
+
+            // Afficher le texte original dans l'élément #output
+            document.getElementById('output').textContent = texteOriginal;
+        }
+
+        function ouvrirVideo() {
+            const lienYouTube = "https://www.youtube.com/watch?v=8dirkVu0AWI";
+            window.open(lienYouTube, "_blank"); // Ouvre le lien dans un nouvel onglet
+        }
+
+        function lireTexte() {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(texteConverti);
+                utterance.lang = 'fr-FR'; // Langue française
+                utterance.rate = 1; // Vitesse de lecture
+                utterance.pitch = 1; // Hauteur de la voix
+
+                // Sélectionner une voix masculine si disponible
+                const voices = speechSynthesis.getVoices();
+                const maleVoice = trouverVoixMasculine(voices);
+
+                if (maleVoice) {
+                    utterance.voice = maleVoice;
+                } else {
+                    console.warn("Aucune voix masculine trouvée. Utilisation de la voix par défaut.");
+                }
+
+                // Démarrer l'animation du visage
+                const visage = document.getElementById('visage');
+                visage.classList.add('parle');
+
+                // Arrêter l'animation lorsque la lecture est terminée
+                utterance.onend = () => {
+                    visage.classList.remove('parle');
+                };
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Votre navigateur ne supporte pas la synthèse vocale.");
+            }
+        }
+
+        function trouverVoixMasculine(voices) {
+            // Liste de noms ou mots-clés associés aux voix masculines
+            const motsClesMasculins = ["homme", "paul", "male", "mâle", "masculin"];
+
+            for (const voice of voices) {
+                if (voice.lang === 'fr-FR') {
+                    for (const motCle of motsClesMasculins) {
+                        if (voice.name.toLowerCase().includes(motCle)) {
+                            return voice;
+                        }
+                    }
+                }
+            }
+            return null; // Aucune voix masculine trouvée
+        }
+
+        function chargerImage() {
+            const fichier = document.getElementById('imageUpload').files[0];
+            if (fichier) {
+                const lecteur = new FileReader();
+                lecteur.onload = function (e) {
+                    const visage = document.getElementById('visage');
+                    visage.style.backgroundImage = `url('${e.target.result}')`;
+                };
+                lecteur.readAsDataURL(fichier);
+            }
+        }
+
+        function copierTexte() {
+            const texte = document.getElementById('output').textContent;
+            if (texte) {
+                navigator.clipboard.writeText(texte)
+                    .then(() => alert("Texte copié dans le presse-papiers !"))
+                    .catch(() => alert("Erreur lors de la copie du texte."));
+            } else {
+                alert("Aucun texte à copier.");
+            }
+        }
+
+        function reinitialiserInterface() {
+            document.getElementById('inputText').value = ""; // Effacer le champ de saisie
+            document.getElementById('inputConvertedText').value = ""; // Effacer le champ de texte converti
+            document.getElementById('output').textContent = ""; // Effacer le texte affiché
+            document.getElementById('visage').style.backgroundImage = "url('visage-ferme.jpg')"; // Réinitialiser l'image du visage
+            document.getElementById('imageUpload').value = ""; // Réinitialiser le champ de téléchargement d'image
+            texteConverti = ""; // Réinitialiser la variable du texte converti
+        }
+
+        function changerCouleur() {
+            const selecteur = document.getElementById('colorPicker');
+            couleurNeon = selecteur.value;
+            document.documentElement.style.setProperty('--couleur-neon', couleurNeon);
+            document.documentElement.style.setProperty('--couleur-neon-hover', `${couleurNeon}80`);
+        }
+
+        // Charger les voix disponibles au chargement de la page
+        window.speechSynthesis.onvoiceschanged = () => {
+            console.log("Voix chargées");
+        };
+    </script>
+</body>
+</html>
