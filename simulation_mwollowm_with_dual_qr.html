@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulation Mwollowm</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; transition: background 0.3s; }
+    .container { max-width: 1000px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background 0.3s, color 0.3s; }
+    h1 { text-align: center; color: #00796b; }
+    button { background: #00796b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+    input[type='number'] { width: 100%; padding: 10px; margin: 5px 0; }
+    .section { margin-top: 20px; }
+    .log { background: #f1f1f1; padding: 10px; height: 150px; overflow-y: scroll; }
+    canvas { margin-top: 30px; width: 100% !important; }
+  </style>
+</head>
+<body>
+  <button onclick="toggleDarkMode()" style="float:right;">🌙 Mode nuit / ☀️ Mode jour</button>
+  <div class="container" id="mainContainer">
+    <h1>Simulation Monétaire : Mwollowm vs Euros</h1>
+
+    <div class="section">
+      <label>💶 Investissement initial (€) :</label>
+      <input type="number" id="initialInvest" value="100" />
+      <button onclick="initInvest()">Valider</button>
+      <label>💳 Ajouter fond (€) :</label>
+      <input type="number" id="addFund" />
+      <button onclick="addFund()">Ajouter</button>
+    </div>
+
+    <div class="section" id="stats" style="display:none;">
+      <p>📉 Investissement restant : <span id="euroBalance">0.00</span> €</p>
+      <p>🪙 Tokens : <span id="tokenCount">0</span></p>
+      <p>💰 Valeur totale : <span id="tokenValue">0.00</span> €</p>
+      <p>📈 Solde global : <span id="globalBalance">0.00</span> €</p>
+      <p>📦 Fonds achat/vente : <span id="secondaryBalance">0.00</span> €</p>
+      <p>💵 Gains ventes : <span id="salesGains">0.00</span> €</p>
+    </div>
+
+    <div class="section" id="actions" style="display:none;">
+      <button onclick="mine()">⛏️ Miner</button><br />
+      <label>Prix achat (€) :</label>
+      <input type="number" id="buyPrice" value="1.17" />
+      <input type="number" id="buyAmount" placeholder="Quantité" />
+      <button onclick="buy()">🛒 Acheter</button><br />
+      <label>Prix revente (€) :</label>
+      <input type="number" id="sellPrice" value="1.50" />
+      <input type="number" id="sellAmount" placeholder="Quantité" />
+      <button onclick="sell()">💸 Vendre</button>
+    </div>
+
+    <canvas id="chart"></canvas>
+
+    <div class="section">
+      <p style="text-align:center;">🔗 Accès rapide :</p>
+      <div style="display:flex; justify-content:center; gap:40px;">
+        <div style="text-align:center;">
+          <p><strong>D1</strong></p>
+          <img src="data:image/png;base64,{qr_base64}" alt="QR D1" style="width:120px;" />
+          <p><a href="https://declaralowm0001.netlify.app/" target="_blank">Lien D1</a></p>
+        </div>
+        <div style="text-align:center;">
+          <p><strong>D2</strong></p>
+          <img src="data:image/png;base64,{qr_d2_base64}" alt="QR D2" style="width:120px;" />
+          <p><a href="https://jovial-melomakarona-be445d.netlify.app/" target="_blank">Lien D2</a></p>
+        </div>
+      </div>
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZoAAAGaAQAAAAAefbjOAAADBklEQVR4nO2cW4rbQBBFT0WCfLYgC5iltHeQJWVN2YF6KbOAgPQZaHPz0Q/LM4GQOLEcufRhTMsHqlFNPW6XxsRvX+nD7zPgkEMOOeSQQw4dE7J6jZDMjDT1telssLYfnHYxz6H7Q1GStAAECVYzzUEChvIhSbqG7meeQ/eH1hoA7MvrSHOLEc1AuWE27meeQ3eDxrcLacIUXw2iwOLrmMW6l3kO3R165xHx66cMIY9KNmSxnu2dZPHge3LoFqh5RBBsQsE6YQAGQwZg6xYPvieH/gKUSl9RF+3EIOICxAXsxLm0GnuZ59C9Y8Q2AIQMcDZBRuklUyPIHuY5dHeI0lXGBYBBmhkEIaM5SG/vSpLmB9+TQ7dAG4+QlCEqQ1xa1iBkpAWKq0T3iKNDvbLMo3U1ygjfDRhyWUunIVtcptZ1PPieHLoFqh6Rpm9AWDDCAqwTraIAiwLStIN5Dt0dallDGWkZVD+aqK05ZKpvhIzXEceH2kMGyoOP/fgiXrvK3NbcIw4NbXuN2lIAhB4jSm1BLS89Rhwe6jFiUD3sDLn3FbWOKHcv6cQ94shQjxFDzxVFkpLm1nhu0olnjcNDVbNM00DtNdYJ4texxAeLcx7FOqJkHXrwPTl0C8Slrygy1RykS6DYaFXRs8ZTQM0j1NuM0mRmWnORWwvqKvZTQNcxomvX0CqKcsxxcRX3iINDbOcnQ4sHG8GqHXO0dOIecXCoa5Yq/eUldbAZum2+4THieaDVjPSS0byOlKHbqlDVyVuSfVT59r/syaE/gfqc5ZBhHbP18y3S5wxxmYw0YUSdfYbqCaDea9SrrJWaYYGtOLXg5xpPAJUY0f74h1yLzNUQ65BJnwHWT5k+g/vwe3LoFugnleVWsS6/qd9cj3gG6Prs86I9VI2iveoHrkc8LbSOaF7NzF4kO129AWqn3c1zaA/ITkHSzNmqlP1qdmlGdzfPoX8Jva0j6jN/Mx8RvI54GuhKxebqnPMyH9Fn990jjg+9f83315f/ZzKHHHLIIYcccgjgB+cekS1WO1WbAAAAAElFTkSuQmCC" alt="QR Code" style="display:block; margin:auto; width:150px;" />
+      <p style="text-align:center;"><a href="https://mwollowm.com/" target="_blank">Lien vers l'application</a></p>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+<script>
+let euroBalance = 0, tokenCount = 0, tokenUnitValue = 1.17, resaleGains = 0, secondaryBalance = 0;
+let totalMined = 0, totalBought = 0;
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Ventes (€)', borderColor: 'green', data: [], fill: false },
+      { label: 'Achats (€)', borderColor: 'orange', data: [], fill: false },
+      { label: 'Minage (€)', borderColor: 'blue', data: [], fill: false },
+      { label: 'Tokens', borderColor: 'purple', data: [], fill: false }
+    ]
+  },
+  options: { scales: { y: { beginAtZero: true } } }
+});
+
+function updateChart() {
+  const time = new Date().toLocaleTimeString();
+  chart.data.labels.push(time);
+  chart.data.datasets[0].data.push(resaleGains);
+  chart.data.datasets[1].data.push(totalBought);
+  chart.data.datasets[2].data.push(totalMined);
+  chart.data.datasets[3].data.push(tokenCount);
+  chart.update();
+}
+
+function updateUI() {
+  document.getElementById("stats").style.display = "block";
+  document.getElementById("actions").style.display = "block";
+  document.getElementById("euroBalance").innerText = euroBalance.toFixed(2);
+  document.getElementById("tokenCount").innerText = tokenCount;
+  document.getElementById("tokenValue").innerText = (tokenCount * tokenUnitValue).toFixed(2);
+  document.getElementById("globalBalance").innerText = (euroBalance + tokenCount * tokenUnitValue).toFixed(2);
+  document.getElementById("salesGains").innerText = resaleGains.toFixed(2);
+  document.getElementById("secondaryBalance").innerText = secondaryBalance.toFixed(2);
+}
+
+function log(msg) {
+  const p = document.createElement("p");
+  p.textContent = msg;
+  document.getElementById("log").prepend(p);
+}
+
+function initInvest() {
+  const val = parseFloat(document.getElementById("initialInvest").value);
+  if (val > 0) {
+    euroBalance = -val;
+    resaleGains = 0;
+    tokenCount = 0;
+    totalMined = 0;
+    totalBought = 0;
+    updateUI(); updateChart();
+    log("💼 Investissement initial : -" + val.toFixed(2) + " €");
+  }
+}
+
+function addFund() {
+  const add = parseFloat(document.getElementById("addFund").value);
+  if (add > 0) {
+    secondaryBalance += add;
+    updateUI(); log("💳 Fonds ajoutés : +" + add.toFixed(2) + " €");
+  }
+}
+
+function mine() {
+  euroBalance += tokenUnitValue;
+  totalMined += tokenUnitValue;
+  tokenCount += 1;
+  updateUI(); updateChart();
+  log("⛏️ Minage : +1.17 €");
+}
+
+function buy() {
+  const qty = parseFloat(document.getElementById("buyAmount").value);
+  const price = parseFloat(document.getElementById("buyPrice").value);
+  const cost = qty * price;
+  if (qty > 0 && cost <= secondaryBalance) {
+    secondaryBalance -= cost;
+    tokenCount += qty;
+    totalBought += cost;
+    updateUI(); updateChart();
+    log("🛒 Achat de " + qty + " tokens pour " + cost.toFixed(2) + " €");
+  } else {
+    log("❌ Achat impossible.");
+  }
+}
+
+function sell() {
+  const qty = parseFloat(document.getElementById("sellAmount").value);
+  const price = parseFloat(document.getElementById("sellPrice").value);
+  const gain = qty * price;
+  if (qty > 0 && qty <= tokenCount) {
+    tokenCount -= qty;
+    resaleGains += gain;
+    secondaryBalance += gain;
+    updateUI(); updateChart();
+    log("💸 Vente de " + qty + " tokens pour " + gain.toFixed(2) + " €");
+  } else {
+    log("❌ Vente impossible.");
+  }
+}
+
+function toggleDarkMode() {
+  const container = document.getElementById("mainContainer");
+  const isDark = container.style.background === "rgb(30, 30, 30)";
+  container.style.background = isDark ? "#fff" : "#1e1e1e";
+  container.style.color = isDark ? "#000" : "#f0f0f0";
+  document.body.style.background = isDark ? "#f0f0f0" : "#121212";
+}
+</script>
+</body>
+</html>
