@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Générateur d’Adresse Wallet</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e1e;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    .container {
+      background-color: #2e2e2e;
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #walletAddress {
+      background: #111;
+      padding: 10px;
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 15px;
+    }
+    .buttons {
+      text-align: center;
+    }
+    #qrcode {
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Créateur de Wallet Crypto</h1>
+    <div class="buttons">
+      <button onclick="generateWallet()">Générer une adresse</button>
+      <button onclick="downloadAddress()">Télécharger</button>
+      <button onclick="copyAddress()">Copier</button>
+    </div>
+    <div id="walletAddress">Cliquez sur "Générer" pour créer une adresse.</div>
+    <div id="qrcode"></div>
+  </div>
+
+  <script>
+    let currentAddress = "";
+
+    function generateWallet() {
+      const random = crypto.getRandomValues(new Uint8Array(32));
+      const hex = Array.from(random).map(b => b.toString(16).padStart(2, '0')).join('');
+      const address = "0x" + hex;
+      currentAddress = address;
+      document.getElementById("walletAddress").innerText = address;
+      generateQRCode(address);
+    }
+
+    function generateQRCode(data) {
+      document.getElementById("qrcode").innerHTML = "";
+      new QRCode(document.getElementById("qrcode"), {
+        text: data,
+        width: 180,
+        height: 180,
+        colorDark: "#ffffff",
+        colorLight: "#1e1e1e",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    function downloadAddress() {
+      if (!currentAddress) return;
+      const blob = new Blob([currentAddress], { type: "text/plain;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "wallet_address.txt";
+      link.click();
+    }
+
+    function copyAddress() {
+      if (!currentAddress) return;
+      navigator.clipboard.writeText(currentAddress).then(() => {
+        alert("Adresse copiée !");
+      });
+    }
+  </script>
+</body>
+</html>
