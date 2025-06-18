@@ -1,0 +1,290 @@
+<html><head><base href="." /><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>VERITESURLOWM</title>
+<style>
+  body {
+    background-color: black;
+    color: turquoise;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2em;
+  }
+  input, button {
+    font-size: 1.2em;
+    padding: 10px;
+    margin: 10px;
+  }
+  .result {
+    font-size: 1.2em;
+    margin-top: 20px;
+  }
+  #qrFrame {
+    margin-top: 20px;
+    padding: 10px;
+    border: 4px solid turquoise;
+    display: inline-block;
+  }
+  canvas {
+    margin-top: 20px;
+    border: 4px solid turquoise;
+    width: 600px;
+    height: 400px;
+  }
+  .validation {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 20px;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  .valid {
+    color: lime;
+  }
+  .invalid {
+    color: red;
+  }
+  .number-result {
+    color: yellow;
+    font-size: 1.2em;
+    margin-top: 10px;
+  }
+  .sequence {
+    margin-top: 10px;
+    font-size: 1.2em;
+  }
+  .sequence:nth-child(odd) {
+    color: #FF6B6B;
+  }
+  .sequence:nth-child(even) {
+    color: #4ECDC4;
+  }
+  .sequence:nth-child(3) {
+    color: #95A5A6;
+  }
+  .sequence:nth-child(4) {
+    color: #F1C40F;
+  }
+  .sequence:nth-child(5) {
+    color: #9B59B6;
+  }
+  #generatePDF {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  #generatePDF:hover {
+    background-color: #27ae60;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<h1>//v//v//W\\v\\v\\</h1>
+
+<div>
+  <label for="inputValue">Entrez un chiffre pour convertir en NA1C142</label><br>
+  <input type="text" id="inputValue" placeholder="Entrez un nombre" oninput="validateResults()"><br>
+  <button onclick="convertToLetters()">Convertir et Générer QR Code</button>
+</div>
+
+<div style="margin-top: 20px;">
+  <label for="letterInput">Entrez des lettres (A-Z)</label><br>
+  <input type="text" id="letterInput" placeholder="Ex: ABC" oninput="validateResults()"><br>
+  <button onclick="convertLettersToWords()">Convertir en mots</button>
+  <div id="letterResult" class="result"></div>
+</div>
+
+<div style="margin-top: 20px;">
+  <label for="reverseInput">Entrez des lettres pour trouver le chiffre</label><br>
+  <input type="text" id="reverseInput" placeholder="Ex: ABC DEF GHI" oninput="findNumberForBothSequences()"><br>
+  <div id="sequenceContainer"></div>
+</div>
+
+<div class="validation" id="validation"></div>
+<div class="result" id="result"></div>
+
+<div id="qrFrame">
+  <div id="qrcode"></div>
+</div>
+
+<br><br>
+<label for="imageUpload">Téléchargez l'image du token :</label><br>
+<input type="file" id="imageUpload" accept="image/*"><br><br>
+
+<canvas id="canvas" width="600" height="400"></canvas>
+
+<br>
+<button id="generatePDF" onclick="generatePDF()">Générer PDF</button>
+
+<script>
+  const { jsPDF } = window.jspdf;
+  const alphabet = {
+    1: 'Aso', 2: 'Bbebe', 3: 'Cco', 4: 'Dtri', 5: 'Ees',
+    6: 'Fange', 7: 'Gfard', 8: 'Hbrivol', 9: 'Iinfi', 10: 'Jsauv',
+    11: 'Kfeu', 12: 'Lcieux', 13: 'Msang', 14: 'Nan', 15: 'Oben',
+    16: 'Pcube', 17: 'Qhein', 18: 'Rcoup', 19: 'Spur', 20: 'Tsouf',
+    21: 'Ulien', 22: 'Vdiv', 23: 'Wfoch', 24: 'Xind', 25: 'Ychoix',
+    26: 'Zlev'
+  };
+
+  const letterToNumber = {
+    'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8,
+    'I': 9, 'J': 10, 'K': 11, 'L': 12, 'M': 13, 'N': 14, 'O': 15,
+    'P': 16, 'Q': 17, 'R': 18, 'S': 19, 'T': 20, 'U': 21, 'V': 22,
+    'W': 23, 'X': 24, 'Y': 25, 'Z': 26
+  };
+
+  async function generatePDF() {
+    const pdf = new jsPDF();
+    
+    // Capture the entire page
+    const canvas = await html2canvas(document.body);
+    const imgData = canvas.toDataURL('image/png');
+    
+    // Calculate aspect ratio to fit the image on the PDF page
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    // Add the image to the PDF
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    
+    // Save the PDF
+    pdf.save('veritesurlowm.pdf');
+  }
+
+  function findNumberForBothSequences() {
+    let input = document.getElementById('reverseInput').value.toUpperCase();
+    let sequences = input.split(/[\s\n]+/);
+    let container = document.getElementById('sequenceContainer');
+    container.innerHTML = '';
+
+    sequences.forEach((seq, index) => {
+      if(seq.length > 0) {
+        let number = calculateNumberFromSequence(seq);
+        let div = document.createElement('div');
+        div.className = 'sequence';
+        div.innerText = `Séquence ${index + 1} (${seq}): ${number}`;
+        container.appendChild(div);
+      }
+    });
+  }
+
+  function calculateNumberFromSequence(sequence) {
+    let number = 0;
+    for(let i = 0; i < sequence.length; i++) {
+      let letter = sequence[i];
+      if(letterToNumber[letter]) {
+        number = number * 26 + letterToNumber[letter];
+      }
+    }
+    return number || "Veuillez entrer des lettres valides (A-Z)";
+  }
+
+  function validateResults() {
+    let numberResult = document.getElementById('result').innerText;
+    let letterResult = document.getElementById('letterResult').innerText;
+    let validationDiv = document.getElementById('validation');
+
+    if (numberResult && letterResult) {
+      if (numberResult === letterResult) {
+        validationDiv.innerHTML = "VALIDE";
+        validationDiv.className = "validation valid";
+      } else {
+        validationDiv.innerHTML = "INVALIDE";
+        validationDiv.className = "validation invalid";
+      }
+    } else {
+      validationDiv.innerHTML = "";
+    }
+  }
+
+  function convertLettersToWords() {
+    let input = document.getElementById('letterInput').value.toUpperCase();
+    let result = '';
+    
+    for(let i = 0; i < input.length; i++) {
+      let letter = input[i];
+      if(letterToNumber[letter]) {
+        result += alphabet[letterToNumber[letter]];
+      }
+    }
+
+    document.getElementById('letterResult').innerText = result || "Veuillez entrer des lettres valides (A-Z)";
+    if(result) {
+      generateQRCode(result);
+    }
+    validateResults();
+  }
+
+  function convertToLetters() {
+    let inputValue = document.getElementById('inputValue').value;
+    let result = "";
+
+    if (/^\d+$/.test(inputValue)) {
+      let num = parseInt(inputValue);
+      while (num > 0) {
+        let digit = num % 26;
+        if (digit === 0) {
+          digit = 26;
+        }
+        result = alphabet[digit] + result;
+        num = (num - digit) / 26;
+      }
+
+      document.getElementById('result').innerText = result;
+      generateQRCode(result);
+    } else {
+      document.getElementById('result').innerText = "Veuillez entrer un nombre valide";
+    }
+    validateResults();
+  }
+
+  function generateQRCode(text) {
+    let currentDateTime = new Date();
+    let date = currentDateTime.toLocaleDateString();
+    let time = currentDateTime.toLocaleTimeString();
+    let fullText = text + "\nDate: " + date + "\nHeure: " + time;
+
+    document.getElementById('qrcode').innerHTML = "";
+    let qrcode = new QRCode(document.getElementById("qrcode"), {
+      text: fullText,
+      width: 128,
+      height: 128,
+      colorDark: "#000000",
+      colorLight: "#FFFFFF",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+
+  document.getElementById('imageUpload').addEventListener('change', function(event) {
+    let file = event.target.files[0];
+    let reader = new FileReader();
+
+    reader.onload = function(e) {
+      let img = new Image();
+      img.onload = function() {
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        let qrCodeCanvas = document.querySelector('#qrcode canvas');
+        if (qrCodeCanvas) {
+          ctx.drawImage(qrCodeCanvas, canvas.width - 150, canvas.height - 150, 100, 100);
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+
+</body></html>
