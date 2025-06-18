@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caisse & Multiplicateur Mwollowm</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0; 
+      padding: 0; 
+      font-family: Arial, sans-serif; 
+      background: #1e1e1e; 
+      color: #f4f4f4; 
+    }
+    h2 { text-align: center; }
+    .section {
+      padding: 20px; 
+      border-bottom: 2px solid #555; 
+    }
+    input, button {
+      width: 100%; 
+      padding: 10px; 
+      margin-top: 10px; 
+      font-size: 16px; 
+      border-radius: 6px; 
+      border: none; 
+    }
+    button {
+      background: #007bff; 
+      color: white; 
+      cursor: pointer; 
+    }
+    button:hover {
+      background: #0056b3; 
+    }
+    pre {
+      background: #333; 
+      padding: 15px; 
+      border-radius: 6px; 
+      overflow-x: auto; 
+    }
+    .output, #qrcode {
+      margin-top: 20px; 
+    }
+    .display-total {
+      background: black; 
+      color: lime; 
+      font-size: 2.5em; 
+      text-align: center; 
+      padding: 20px; 
+      margin: 0; 
+      border-bottom: 4px solid lime; 
+    }
+  </style>
+</head>
+<body>
+
+  <div class="display-total" id="totalAffichage">Total à payer : 0.0000000000 mwal</div>
+
+  <div class="section" id="sectionCaisse">
+    <h2>Caisse Mwollowm</h2>
+    <input type="text" id="produitInput" placeholder='{"prix_mwal":12.34,"produit":"Nom"}' oninput="tryAjouterProduit()">
+    <input type="text" id="tokenInput" placeholder='{"cumulative_balance":0.0000069444,"cumul_mwol_lowm":["id"]}' oninput="tryEncaisserToken()">
+    <input type="file" id="logoInput" accept="image/*">
+    <div class="output">
+      <div id="listeProduits">Aucun produit</div>
+      <div id="paiementResultat"></div>
+    </div>
+    <button onclick="resetCaisse()">🔄 Réinitialiser</button>
+    <button id="btnPDF" style="display:none; margin-top:10px" onclick="telechargerPDFRendu()">📥 Télécharger le PDF de rendu</button>
+  </div>
+
+  <div class="section" id="sectionMultiplicateur">
+    <h2>Multiplicateur Mwollowm</h2>
+    <input type="number" id="montant" placeholder="Entrez un montant" />
+    <button onclick="calculerMultiplication()">Calculer</button>
+    <button onclick="telechargerJson()">📄 Télécharger JSON</button>
+    <button onclick="telechargerQR()">📷 Télécharger QR Code</button>
+    <pre id="resultatMultiplicateur"></pre>
+    <div id="qrcode"></div>
+  </div>
+
+<script>
+  const MWOL_UNIT = 0.0000069444444444;
+  let produits = [];
+  let totalCumulToken = 0;
+  let tokensUtilises = new Set(JSON.parse(localStorage.getItem("tokensUtilises") || "[]"));
+  let renduStocke = 0;
+  let dernierHash = "";
+
+  function tryAjouterProduit() {
+    const input = document.getElementById("produitInput").value;
+    try {
+      if (input.trim().endsWith("}")) {
+        const data = JSON.parse(input);
+        produits.push(data);
+        document.getElementById("produitInput").value = '';
+        majAffichageProduits();
+      }
+    } catch {}
+  }
+
+  function tryEncaisserToken() {
+    const input = document.getElementById("tokenInput").value;
+    try {
+      if (input.trim().endsWith("}")) {
+        encaisserToken();
+      }
+    } catch {}
+  }
+
+  function sauvegarderToken(id) {
+    tokensUtilises.add(id);
+    localStorage.setItem("tokensUtilises", JSON.stringify(Array.from(tokensUtilises)));
+  }
+
+  function encaisserToken() {
+    try {
+      const token = JSON.parse(document.getElementById("tokenInput").value);
+      const id = token.cumul_mwol_lowm?.[0];
+      if (!id || tokensUtilises.has(id)) return alert("❌ Token déjà utilisé ou invalide");
+      sauvegarderToken(id);
+      const mwal = token.cumulative_balance / MWOL_UNIT;
+      totalCumulToken += mwal;
+      const total = produits.reduce((s, p) => s + p.prix_mwal, 0);
+      const reste = total - totalCumulToken;
+
+      if (reste <= 0) {
+        const rendu = Math.abs(reste).toFixed(10);
+        document.getElementById("paiementResultat").innerHTML = `✅ Paiement accepté. Rendu : ${rendu} mwal`;
+        document.getElementById("montant").value = rendu;
+        renduStocke = Math.abs(reste);
+        dernierHash = genererHash();
+        document.getElementById("btnPDF").style.display = "block";
+        produits = [];
+        totalCumulToken = 0;
+        tokensUtilises.clear();
+        localStorage.removeItem("tokensUtilises");
+      } else {
+        document.getElementById("paiementResultat").innerHTML = `❌ Manque : ${reste.toFixed(10)} mwal`;
+      }
+      document.getElementById("tokenInput").value = '';
+      majAffichageProduits();
+    } catch {
+      alert("❌ Token JSON invalide");
+    }
+  }
+
+  function majAffichageProduits() {
+    const total = produits.reduce((s, p) => s + p.prix_mwal, 0);
+    const contenu = produits.map(p => `✔ ${p.produit} - ${p.prix_mwal.toFixed(2)} mwal`).join("\n");
+    document.getElementById("listeProduits").innerHTML = contenu || "Aucun produit";
+    document.getElementById("totalAffichage").innerText = `Total à payer : ${total.toFixed(10)} mwal`;
+  }
+
+  function genererHash() {
+    const chars = 'abcdef0123456789';
+    let hash = '';
+    for (let i = 0; i < 64; i++) {
+      hash += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return hash;
+  }
+
+  async function telechargerPDFRendu() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const date = new Date().toISOString();
+    const cumul_balance = (renduStocke * MWOL_UNIT).toFixed(20);
+    const json = {
+      balance: Math.floor(Math.random() * 1e12) + " serial number " + date,
+      cumul_mwol_lowm: [dernierHash],
+      cumulative_balance: parseFloat(cumul_balance),
+      date_time: date
+    };
+    const jsonString = JSON.stringify(json, null, 2);
+
+    const canvas = document.createElement('canvas');
+    new QRious({ element: canvas, value: jsonString, size: 150 });
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setFontSize(18);
+    doc.text("Jeton de Rendu de Monnaie", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text("Code Client : " + dernierHash, 10, 35);
+    doc.text("Montant rendu : " + renduStocke.toFixed(10) + " mwal", 10, 45);
+    doc.text("Date : " + date, 10, 55);
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 65, 50, 50);
+
+    const logoFile = document.getElementById('logoInput').files[0];
+    if (logoFile) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const logoDataUrl = evt.target.result;
+        doc.addImage(logoDataUrl, 'PNG', 145, 20, 50, 20);
+        finalizePDF(doc, jsonString);
+      };
+      reader.readAsDataURL(logoFile);
+    } else {
+      finalizePDF(doc, jsonString);
+    }
+  }
+
+  function finalizePDF(doc, jsonString) {
+    doc.addPage();
+    doc.setFontSize(10);
+    doc.text(doc.splitTextToSize(jsonString, 180), 10, 20);
+    doc.save("jeton_rendu.pdf");
+  }
+
+  function resetCaisse() {
+    produits = [];
+    totalCumulToken = 0;
+    tokensUtilises.clear();
+    localStorage.removeItem("tokensUtilises");
+    document.getElementById("produitInput").value = '';
+    document.getElementById("tokenInput").value = '';
+    document.getElementById("montant").value = '';
+    document.getElementById("listeProduits").innerHTML = "Aucun produit";
+    document.getElementById("paiementResultat").innerHTML = '';
+    document.getElementById("totalAffichage").innerText = "Total à payer : 0.0000000000 mwal";
+    document.getElementById("btnPDF").style.display = "none";
+  }
+</script>
+</body>
+</html>
