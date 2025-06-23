@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créateur d'étiquettes Mwollowm</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        label, input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        input[readonly] {
+            background-color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .etiquettes, .logos-only {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .etiquette, .logo-dos {
+            width: 100%;
+            aspect-ratio: 1.414 / 1;
+            border: 2px dashed #007bff;
+            padding: 15px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 0 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            position: relative;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .prix-mwal {
+            font-size: 2.5em;
+            color: green;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .conversion-preview {
+            font-size: 1.2em;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .delete-btn, .delete-logo-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .print-button {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .logo-img {
+            max-width: 70%;
+            max-height: 70%;
+        }
+        @media print {
+            body *:not(.etiquettes):not(.logos-only):not(.etiquette):not(.logo-dos):not(.etiquette *):not(.logo-dos *) {
+                display: none;
+            }
+            .etiquettes, .logos-only {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+                height: 100vh;
+                gap: 0;
+            }
+            .etiquette, .logo-dos {
+                height: 50vh;
+                border: 1px solid #000;
+                margin: 0;
+            }
+            .delete-btn, .delete-logo-btn {
+                display: none;
+            }
+        }
+        canvas {
+            display: block;
+            margin: 10px auto 0;
+            width: 220px !important;
+            height: 220px !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Créateur d'étiquettes Mwollowm</h1>
+    <div class="form-container">
+        <label for="produit">Nom du produit :</label>
+        <input type="text" id="produit" placeholder="Ex: verre rouge">
+
+        <label for="prix_euro">Prix en Euro (€) :</label>
+        <input type="number" id="prix_euro" step="0.01" placeholder="Ex: 0.91" oninput="afficherConversion()">
+
+        <label for="prix_mwal">OU Prix en Mwal :</label>
+        <input type="number" id="prix_mwal" step="0.01" placeholder="Ex: 1" oninput="afficherConversion(true)">
+
+        <label for="taux_conversion">Taux de conversion (€ pour 1 mwal) :</label>
+        <input type="number" id="taux_conversion" step="0.0000001" value="0.9054154708520179" oninput="afficherConversion()">
+
+        <div class="conversion-preview" id="conversion-preview"></div>
+
+        <label for="quantite">Nombre d'étiquettes à imprimer :</label>
+        <input type="number" id="quantite" min="1" value="1">
+
+        <label for="logoInput">Logo pour le dos des étiquettes :</label>
+        <input type="file" id="logoInput" accept="image/*">
+
+        <button onclick="ajouterEtiquette()">Ajouter les étiquettes</button>
+        <button onclick="ajouterLogosDos()">Ajouter logos au dos</button>
+    </div>
+
+    <div class="print-button">
+        <button onclick="window.print()">Imprimer</button>
+    </div>
+
+    <div class="etiquettes" id="etiquettes"></div>
+    <div class="logos-only" id="logos-only"></div>
+
+    <script>
+        let logoDataURL = "https://via.placeholder.com/300x300?text=LOGO";
+
+        document.getElementById('logoInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    logoDataURL = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function afficherConversion(forceFromMwal = false) {
+            const prixEuro = parseFloat(document.getElementById('prix_euro').value);
+            const prixMwal = parseFloat(document.getElementById('prix_mwal').value);
+            const tauxConversion = parseFloat(document.getElementById('taux_conversion').value);
+            const conversionPreview = document.getElementById('conversion-preview');
+
+            if (forceFromMwal && !isNaN(prixMwal) && !isNaN(tauxConversion)) {
+                const euro = (prixMwal * tauxConversion).toFixed(2);
+                conversionPreview.innerText = `≈ €${euro}`;
+            } else if (!isNaN(prixEuro) && !isNaN(tauxConversion) && tauxConversion !== 0) {
+                const mwal = (prixEuro / tauxConversion).toFixed(2);
+                conversionPreview.innerText = `≈ ${mwal} mwal`;
+            } else {
+                conversionPreview.innerText = '';
+            }
+        }
+
+        function ajouterEtiquette() {
+            const produit = document.getElementById('produit').value.trim();
+            let prixEuro = parseFloat(document.getElementById('prix_euro').value);
+            let prixMwal = parseFloat(document.getElementById('prix_mwal').value);
+            const taux = parseFloat(document.getElementById('taux_conversion').value);
+            const quantite = parseInt(document.getElementById('quantite').value);
+            const container = document.getElementById('etiquettes');
+
+            if (!produit || isNaN(taux) || (isNaN(prixEuro) && isNaN(prixMwal))) return;
+
+            if (isNaN(prixMwal)) prixMwal = (prixEuro / taux).toFixed(2);
+            else if (isNaN(prixEuro)) prixEuro = (prixMwal * taux).toFixed(2);
+
+            const date = new Date().toISOString();
+
+            for (let i = 0; i < quantite; i++) {
+                const data = {
+                    prix_mwal: parseFloat(prixMwal),
+                    prix_euro: parseFloat(prixEuro),
+                    produit,
+                    taux_conversion: taux,
+                    date,
+                    type: "affiche_prix_mwollowm"
+                };
+
+                const etiquette = document.createElement('div');
+                etiquette.className = 'etiquette';
+
+                const prixEl = document.createElement('div');
+                prixEl.className = 'prix-mwal';
+                prixEl.innerText = `${data.prix_mwal} mwal`;
+
+                const produitEl = document.createElement('div');
+                produitEl.innerText = data.produit;
+
+                const canvas = document.createElement('canvas');
+                new QRious({ element: canvas, size: 220, value: JSON.stringify(data) });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerText = '×';
+                deleteBtn.onclick = () => etiquette.remove();
+
+                etiquette.appendChild(deleteBtn);
+                etiquette.appendChild(prixEl);
+                etiquette.appendChild(produitEl);
+                etiquette.appendChild(canvas);
+
+                container.appendChild(etiquette);
+            }
+        }
+
+        function ajouterLogosDos() {
+            const container = document.getElementById('logos-only');
+            const quantite = parseInt(document.getElementById('quantite').value);
+            container.innerHTML = '';
+
+            for (let i = 0; i < quantite; i++) {
+                const logoDiv = document.createElement('div');
+                logoDiv.className = 'logo-dos';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-logo-btn';
+                deleteBtn.innerText = '×';
+                deleteBtn.onclick = () => logoDiv.remove();
+
+                const img = document.createElement('img');
+                img.src = logoDataURL;
+                img.className = 'logo-img';
+
+                logoDiv.appendChild(deleteBtn);
+                logoDiv.appendChild(img);
+                container.appendChild(logoDiv);
+            }
+        }
+    </script>
+</body>
+</html>
