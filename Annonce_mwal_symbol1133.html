@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Euro /v/O:O\v\ Mwal</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #000;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #28a745;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .mode-toggle {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .image-preview {
+      display: block;
+      margin: 10px auto;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="mode-toggle">
+    <button onclick="toggleMode()">Mode Jour/Nuit</button>
+  </div>
+  <h1>Euro /v/O:O\v\ Mwal</h1>
+  
+    <div style="text-align: center; font-size: 24px; font-weight: bold; margin-top: 10px;">/v/O:O\v\</div>
+    <input type="hidden" id="title" value="/v/O:O\v\">
+    
+  <textarea id="description" placeholder="Devise"></textarea>
+  <input type="text" id="price" placeholder="Prix (en mwal)">
+  <input type="text" id="location" placeholder="Ville">
+  <input type="text" id="contact" placeholder="Téléphone">
+  <input type="text" id="rdv" placeholder="RDV (lieu et date)">
+  <label>Image recto :</label>
+  <input type="file" id="imageUpload" accept="image/*">
+  <img id="imagePreview" class="image-preview" src="#" alt="Image recto" style="display:none;">
+  <label>Image verso :</label>
+  <input type="file" id="imageUpload2" accept="image/*">
+  <img id="imagePreview2" class="image-preview" src="#" alt="Image verso" style="display:none;">
+  <button onclick="generateImage()">Télécharger l'annonce (.png)</button>
+
+  <canvas id="canvas" width="800" height="1200" style="display:none;"></canvas>
+
+  
+<script>
+  function convertToMwal() {
+    const euroValue = parseFloat(document.getElementById('euro').value.replace(',', '.'));
+    if (!isNaN(euroValue)) {
+      const conversionRate = 1; // taux fixe spéculatif par défaut (modifiable)
+      document.getElementById('price').value = (euroValue * conversionRate).toFixed(2);
+    } else {
+      document.getElementById('price').value = '';
+    }
+  }
+
+    let uploadedImage, uploadedImage2;
+    let isDark = false;
+
+    function toggleMode() {
+      isDark = !isDark;
+      document.body.style.backgroundColor = isDark ? '#222' : '#f9f9f9';
+      document.body.style.color = isDark ? '#eee' : '#333';
+    }
+
+    document.getElementById('imageUpload').onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        uploadedImage = new Image();
+        uploadedImage.onload = () => {
+          const preview = document.getElementById('imagePreview');
+          preview.src = uploadedImage.src;
+          preview.style.display = 'block';
+        };
+        uploadedImage.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    document.getElementById('imageUpload2').onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        uploadedImage2 = new Image();
+        uploadedImage2.onload = () => {
+          const preview2 = document.getElementById('imagePreview2');
+          preview2.src = uploadedImage2.src;
+          preview2.style.display = 'block';
+        };
+        uploadedImage2.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    function generateImage() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 40px Arial';
+      ctx.fillText('/v/O:O\\v\\', canvas.width / 2, 60);
+
+      ctx.font = '24px Arial';
+      ctx.fillText(document.getElementById('description').value, canvas.width / 2, 120);
+      ctx.fillText('Prix : ' + document.getElementById('price').value + ' mwal', canvas.width / 2, 170);
+      ctx.fillText('Ville : ' + document.getElementById('location').value, canvas.width / 2, 220);
+      ctx.fillText('Tél : ' + document.getElementById('contact').value, canvas.width / 2, 270);
+      ctx.fillText('RDV : ' + document.getElementById('rdv').value, canvas.width / 2, 320);
+
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(100, 350);
+      ctx.lineTo(700, 350);
+      ctx.stroke();
+
+      if (uploadedImage) {
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText('Recto :', canvas.width / 2, 380);
+        ctx.drawImage(uploadedImage, 100, 400, 250, 150);
+      }
+
+      if (uploadedImage2) {
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText('Verso :', canvas.width / 2, 580);
+        ctx.drawImage(uploadedImage2, 450, 600, 250, 150);
+      }
+
+      const link = document.createElement('a');
+      link.download = 'annonce_mwal_pro.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  </script>
+</body>
+</html>
