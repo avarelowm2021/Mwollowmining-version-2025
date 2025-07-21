@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Contrat Mwal ↔ Euro</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 30px;
+    }
+    .section {
+      background-color: #222;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      margin-top: 10px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    input {
+      font-size: 1.2em;
+      text-align: center;
+    }
+    canvas {
+      background: white;
+      margin-top: 10px;
+      border-radius: 5px;
+      touch-action: none;
+    }
+    .result {
+      margin: 10px 0;
+      font-size: 0.9em;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h1>/v/O:O\v\</h1>
+  <h2>Convertisseur Euro ↔ Mwal avec contrat PDF</h2>
+
+  <div class="container">
+    <div class="section">
+      <h3>Nom et Prénom du Vendeur + description du Bien ou Service</h3>
+      <input type="text" id="nomVendeur" placeholder="Nom Prénom Vendeur + description du Bien ou Service">
+      <h3>Nom et Prénom de l'Acheteur + description du Bien ou Service</h3>
+      <input type="text" id="nomAcheteur" placeholder="Nom Prénom Acheteur + description du Bien ou Service">
+    </div>
+
+    <div class="section">
+      <h3>Montant en Euro (€)</h3>
+      <input type="number" id="euroInput" placeholder="Montant en €" oninput="handleEuroChange()" />
+      <div class="result" id="euroResult">—</div>
+      <div id="qrEuro"></div>
+    </div>
+
+    <div class="section">
+      <h3>Montant en Mwal</h3>
+      <input type="number" id="mwalInput" placeholder="Montant en Mwal" oninput="handleMwalChange()" />
+      <div class="result" id="mwalResult">—</div>
+      <div id="qrMwal"></div>
+    </div>
+
+    <div class="section">
+      <h3>Différence SHA256</h3>
+      <div class="result" id="diffResult">—</div>
+      <div id="qrDiff"></div>
+    </div>
+
+    <div class="section">
+      <h3>QR Code Taux Calculé</h3>
+      <div id="qrTaux"></div>
+    </div>
+
+    <div class="section">
+      <h3>Signature Vendeur</h3>
+      <canvas id="signatureVendeur" width="280" height="100"></canvas>
+      <button onclick="clearSignature('signatureVendeur')">Effacer</button>
+    </div>
+
+    <div class="section">
+      <h3>Signature Acheteur</h3>
+      <canvas id="signatureAcheteur" width="280" height="100"></canvas>
+      <button onclick="clearSignature('signatureAcheteur')">Effacer</button>
+    </div>
+
+    <div class="section">
+      <h3>Générer le Contrat PDF</h3>
+      <button onclick="downloadPdf()">Télécharger le PDF</button>
+    </div>
+  </div>
+
+  <script>
+    const divisor = 0.00000694444444444444;
+    let euroRaw = 0, mwalRaw = 0, euroUnit = 0, mwalUnit = 0, diffValue = 0, diffHash = "";
+    let qrTauxJson = "", qrTauxBase64 = "";
+
+    async function handleEuroChange() {
+      euroRaw = parseFloat(document.getElementById('euroInput').value) || 0;
+      euroUnit = euroRaw / divisor;
+      document.getElementById('euroResult').textContent = euroUnit.toFixed(5) + " unités";
+      generateQRCode(euroUnit.toFixed(5), "Euro", "qrEuro");
+      await updateDifference();
+    }
+
+    async function handleMwalChange() {
+      mwalRaw = parseFloat(document.getElementById('mwalInput').value) || 0;
+      mwalUnit = mwalRaw / divisor;
+      document.getElementById('mwalResult').textContent = mwalUnit.toFixed(5) + " unités";
+      generateQRCode(mwalUnit.toFixed(5), "Mwal", "qrMwal");
+      await updateDifference();
+    }
+
+    async function updateDifference() {
+      diffValue = euroUnit - mwalUnit;
+      const rounded = Math.round(Math.abs(diffValue));
+      diffHash = await sha256(rounded.toString());
+      document.getElementById('diffResult').textContent = `SHA256(${rounded}) = ${diffHash}`;
+      generateQRCode(diffHash, "SHA256", "qrDiff");
+      await updateQrTaux();
+    }
+
+    async function sha256(text) {
+      const data = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function generateQRCode(text, label, id) {
+      const container = document.getElementById(id);
+      container.innerHTML = '';
+      QRCode.toCanvas(`${label}: ${text}`, { width: 200 }, (err, canvas) => {
+        if (!err) container.appendChild(canvas);
+      });
+    }
+
+    function clearSignature(id) {
+      const canvas = document.getElementById(id);
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function initDraw(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext("2d");
+      let drawing = false;
+
+      const getPosition = (e) => {
+        if (e.touches) {
+          const rect = canvas.getBoundingClientRect();
+          return {
+            x: e.touches[0].clientX - rect.left,
+            y: e.touches[0].clientY - rect.top
+          };
+        } else {
+          return {
+            x: e.offsetX,
+            y: e.offsetY
+          };
+        }
+      };
+
+      const startDrawing = (e) => {
+        e.preventDefault();
+        drawing = true;
+        const pos = getPosition(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+      };
+
+      const draw = (e) => {
+        if (!drawing) return;
+        e.preventDefault();
+        const pos = getPosition(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+      };
+
+      const stopDrawing = (e) => {
+        e.preventDefault();
+        drawing = false;
+      };
+
+      // Desktop
+      canvas.addEventListener("mousedown", startDrawing);
+      canvas.addEventListener("mousemove", draw);
+      canvas.addEventListener("mouseup", stopDrawing);
+      canvas.addEventListener("mouseout", stopDrawing);
+
+      // Mobile
+      canvas.addEventListener("touchstart", startDrawing);
+      canvas.addEventListener("touchmove", draw);
+      canvas.addEventListener("touchend", stopDrawing);
+      canvas.addEventListener("touchcancel", stopDrawing);
+    }
+
+    initDraw('signatureVendeur');
+    initDraw('signatureAcheteur');
+
+    async function updateQrTaux() {
+  const now = new Date();
+  const dateFormatted = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const tauxDirect = euroRaw && mwalRaw ? euroRaw / mwalRaw : 0;
+  const variation = parseFloat((Math.abs(diffValue) || 1.25).toFixed(2));
+
+  const data = {
+    devise: "Mwal",
+    taux: parseFloat(tauxDirect.toFixed(6)),
+    date: dateFormatted,
+    variation: variation
+  };
+
+  qrTauxJson = JSON.stringify(data, null, 2);
+  document.getElementById("qrTaux").innerHTML = '';
+
+  QRCode.toCanvas(qrTauxJson, { width: 200 }, (err, canvas) => {
+    if (!err) document.getElementById("qrTaux").appendChild(canvas);
+  });
+
+  qrTauxBase64 = await QRCode.toDataURL(qrTauxJson);
+}
+
+
+    async function downloadPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const vendeur = document.getElementById("nomVendeur").value || "Vendeur inconnu";
+      const acheteur = document.getElementById("nomAcheteur").value || "Acheteur inconnu";
+      const sigVendeur = document.getElementById("signatureVendeur").toDataURL("image/png");
+      const sigAcheteur = document.getElementById("signatureAcheteur").toDataURL("image/png");
+
+      await updateQrTaux();
+      const qrBase64 = qrTauxBase64;
+      const tauxDirect = euroRaw && mwalRaw ? euroRaw / mwalRaw : 0;
+
+      doc.setFontSize(18);
+      doc.text("/v/O:O\\v\\", 105, 15, { align: "center" });
+
+      doc.setFontSize(12);
+      doc.text(`Nom du Vendeur : ${vendeur}`, 10, 25);
+      doc.text(`Nom de l'Acheteur : ${acheteur}`, 10, 32);
+      doc.text(`Montant Euro : ${euroRaw}`, 10, 40);
+      doc.text(`Montant Mwal : ${mwalRaw}`, 10, 47);
+      doc.text(`Unité Euro : ${euroUnit.toFixed(5)}`, 10, 54);
+      doc.text(`Unité Mwal : ${mwalUnit.toFixed(5)}`, 10, 61);
+      doc.text(`SHA256 Différence :`, 10, 70);
+      doc.setFontSize(8);
+      doc.text(diffHash, 10, 75);
+      doc.setFontSize(10);
+      doc.text(`Taux direct EUR/Mwal : ${tauxDirect.toFixed(6)} €`, 10, 83);
+
+      doc.text("Signature Vendeur:", 10, 93);
+      doc.addImage(sigVendeur, "PNG", 10, 96, 80, 30);
+
+      doc.text("Signature Acheteur:", 10, 130);
+      doc.addImage(sigAcheteur, "PNG", 10, 133, 80, 30);
+
+      doc.text("QR Code taux:", 120, 93);
+      doc.addImage(qrBase64, "PNG", 120, 96, 60, 60);
+
+      doc.save("contrat_mwal_euro.pdf");
+    }
+
+    window.onload = updateQrTaux;
+  </script>
+</body>
+</html>
