@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mwal /v/O:O\v\ Euro</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #000;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #28a745;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .mode-toggle {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .image-preview {
+      display: block;
+      margin: 10px auto;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .qr-preview {
+      display: block;
+      margin: 20px auto;
+      width: 150px;
+    }
+  </style>
+</head>
+<body>
+  <div class="mode-toggle">
+    <button onclick="toggleMode()">Mode Jour/Nuit</button>
+  </div>
+  <h1>Mwal /v/O:O\v\ Euro</h1>
+
+  <div style="text-align: center; font-size: 24px; font-weight: bold; margin-top: 10px;">/v/O:O\v\</div>
+
+  <textarea id="description" placeholder="Devise Biens et services"></textarea>
+  <input type="text" id="price" placeholder="Prix (en euros)">
+  <input type="text" id="location" placeholder="Ville">
+  <input type="text" id="contact" placeholder="Téléphone">
+  <input type="text" id="rdv" placeholder="RDV (lieu et date)">
+
+  <label>Image recto :</label>
+  <input type="file" id="imageUpload" accept="image/*">
+  <img id="imagePreview" class="image-preview" src="#" alt="Image recto" style="display:none;">
+
+  <label>Image verso :</label>
+  <input type="file" id="imageUpload2" accept="image/*">
+  <img id="imagePreview2" class="image-preview" src="#" alt="Image verso" style="display:none;">
+
+  <label>Image moule :</label>
+  <input type="file" id="imageUpload3" accept="image/*">
+  <img id="imagePreview3" class="image-preview" src="#" alt="Image moule" style="display:none;">
+
+  <h3 style="text-align:center;">QR Code vers calcul de puissance :</h3>
+  <img id="qrCode" class="qr-preview" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://jovial-melomakarona-be445d.netlify.app/calculation-power" alt="QR Code">
+
+  <button onclick="generateImage()">Télécharger l'annonce (.png)</button>
+
+  <canvas id="canvas" width="800" height="1450" style="display:none;"></canvas>
+
+<script>
+  let uploadedImage, uploadedImage2, uploadedImage3, qrImage;
+  let isDark = false;
+  const qrUrl = "https://jovial-melomakarona-be445d.netlify.app/calculation-power";
+
+  function toggleMode() {
+    isDark = !isDark;
+    document.body.style.backgroundColor = isDark ? '#222' : '#f9f9f9';
+    document.body.style.color = isDark ? '#eee' : '#333';
+  }
+
+  // Gestion des images
+  document.getElementById('imageUpload').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      uploadedImage = new Image();
+      uploadedImage.onload = () => {
+        document.getElementById('imagePreview').src = uploadedImage.src;
+        document.getElementById('imagePreview').style.display = 'block';
+      };
+      uploadedImage.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  document.getElementById('imageUpload2').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      uploadedImage2 = new Image();
+      uploadedImage2.onload = () => {
+        document.getElementById('imagePreview2').src = uploadedImage2.src;
+        document.getElementById('imagePreview2').style.display = 'block';
+      };
+      uploadedImage2.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  document.getElementById('imageUpload3').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      uploadedImage3 = new Image();
+      uploadedImage3.onload = () => {
+        document.getElementById('imagePreview3').src = uploadedImage3.src;
+        document.getElementById('imagePreview3').style.display = 'block';
+      };
+      uploadedImage3.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  function generateImage() {
+    qrImage = new Image();
+    qrImage.crossOrigin = "Anonymous";
+    qrImage.onload = drawFinalImage;
+    qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(qrUrl);
+  }
+
+  function drawFinalImage() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 40px Arial';
+    ctx.fillText('/v/O:O\\v\\', canvas.width / 2, 60);
+
+    ctx.font = '24px Arial';
+    ctx.fillText(document.getElementById('description').value, canvas.width / 2, 120);
+    ctx.fillText('Prix : ' + document.getElementById('price').value + ' €', canvas.width / 2, 170);
+    ctx.fillText('Ville : ' + document.getElementById('location').value, canvas.width / 2, 220);
+    ctx.fillText('Tél : ' + document.getElementById('contact').value, canvas.width / 2, 270);
+    ctx.fillText('RDV : ' + document.getElementById('rdv').value, canvas.width / 2, 320);
+
+    ctx.strokeStyle = '#ff6600';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(100, 350);
+    ctx.lineTo(700, 350);
+    ctx.stroke();
+
+    if (uploadedImage) {
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText('Recto :', canvas.width / 2, 380);
+      ctx.drawImage(uploadedImage, 100, 400, 250, 150);
+    }
+
+    if (uploadedImage2) {
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText('Verso :', canvas.width / 2, 580);
+      ctx.drawImage(uploadedImage2, 450, 600, 250, 150);
+    }
+
+    if (uploadedImage3) {
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText('Moule :', canvas.width / 2, 780);
+      ctx.drawImage(uploadedImage3, 275, 800, 250, 150);
+    }
+
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Lien : Calculation Power', canvas.width / 2, 990);
+    ctx.drawImage(qrImage, canvas.width / 2 - 75, 1000, 150, 150);
+
+    const link = document.createElement('a');
+    link.download = 'annonce_mwal_pro.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  }
+</script>
+</body>
+</html>
