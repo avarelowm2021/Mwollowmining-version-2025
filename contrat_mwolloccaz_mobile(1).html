@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrat Mwolloccaz</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 15px;
+      color: #222;
+      line-height: 1.5;
+    }
+    .logo {
+      text-align: center;
+      font-size: 24px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 20px;
+      color: #444;
+    }
+    h2 {
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    label {
+      font-weight: 600;
+      margin: 12px 0 6px;
+      display: block;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+    .clause {
+      background: #fff8e1;
+      border-left: 5px solid #fbc02d;
+      padding: 12px;
+      margin: 20px 0;
+      font-size: 14px;
+      border-radius: 6px;
+      color: #555;
+    }
+    #qr {
+      text-align: center;
+      margin-top: 20px;
+    }
+    textarea[readonly] {
+      background-color: #eaeaea;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">/v/O:O\v\</div>
+  <h2>Contrat d'Échange - Mwolloccaz</h2>
+  <label>Nom et Prénom du Vendeur :</label>
+  <input id="vendeur" type="text">
+  <label>Nom et Prénom de l'Acheteur :</label>
+  <input id="acheteur" type="text">
+  <label>Montant en Euro (€) ou Estimation du Bien et Service en Euro (€) :</label>
+  <input id="montant" type="number" value="1">
+  <label>Montant en MWAL :(Aidez vous en consultant la valeur actuelle: mwollowm.com)</label>
+  <input id="montant_mwal" type="number" value="1">
+  <button onclick="inverserMontants()">Inverser Euro / MWAL</button>
+  <label>Devise :</label>
+  <select id="devise">
+    <option value="EUR">EUR</option>
+    <option value="MWAL">MWAL</option>
+    <option value="USD">USD</option>
+  </select>
+  <label>Mode de paiement :</label>
+  <select id="paiement">
+    <option value="Espèces">Espèces</option>
+    <option value="Virement">Virement</option>
+    <option value="Cryptomonnaie">Cryptomonnaie</option>
+    <option value="Autre">Autre</option>
+  </select>
+  <label>Description du bien ou service :</label>
+  <textarea id="description" rows="4" placeholder="Décrivez le bien ou service échangé..."></textarea>
+  <label>Ville :</label>
+  <input id="ville" type="text">
+  <label>Date du contrat :</label>
+  <input id="date" type="date">
+  <label>Signature du Vendeur :</label>
+  <canvas id="canvasVendeur" width="300" height="80"></canvas>
+  <button onclick="clearCanvas('canvasVendeur')">Effacer la signature vendeur</button>
+  <label>Signature de l'Acheteur :</label>
+  <canvas id="canvasAcheteur" width="300" height="80"></canvas>
+  <button onclick="clearCanvas('canvasAcheteur')">Effacer la signature acheteur</button>
+  <div class="clause">
+    ⚠️ Les clients ou acheteurs ont <strong>48 heures</strong> pour changer d'avis. Passé ce délai, aucun remboursement ni changement ne sera accepté.
+  </div>
+  <button onclick="genererQR()">Générer le QR Code</button>
+  <button onclick="genererPDF()">Télécharger le PDF</button>
+  <div id="qr"></div>
+  <label>Contenu encodé :</label>
+  <textarea id="codeEncodé" readonly></textarea>
+  <button onclick="copierContenu()">Copier le contenu</button>
+  <script>
+
+  async function genererPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const data = collecterDonnees();
+
+  doc.setFontSize(22);
+  doc.setFont("courier", "bold");
+  doc.text("/v/O:O\\v\\", 105, 20, { align: "center" });
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Contrat d'échange Mwolloccaz", 105, 35, { align: "center" });
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+
+  let y = 50;
+  const saut = 8;
+
+  doc.text(`Vendeur : ${data.vendeur}`, 20, y); y += saut;
+  doc.text(`Acheteur : ${data.acheteur}`, 20, y); y += saut;
+  doc.text(`Montant (€) : ${data.montant}`, 20, y); y += saut;
+  doc.text(`Montant MWAL : ${data.montant_mwal}`, 20, y); y += saut;
+  doc.text(`Devise : ${data.devise}`, 20, y); y += saut;
+  doc.text(`Mode de paiement : ${data.paiement}`, 20, y); y += saut;
+  doc.text(`Description : ${data.description}`, 20, y); y += saut;
+  doc.text(`Ville : ${data.ville}`, 20, y); y += saut;
+
+  // Dates
+  doc.text(`Date du contrat signé : ${data.date}`, 20, y); y += saut;
+
+  const parts = data.date.split('/');
+  const dateSignature = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+  const dateFin = new Date(dateSignature.getTime() + 48 * 60 * 60 * 1000);
+  const dateFinStr = `${String(dateFin.getDate()).padStart(2, '0')}/${String(dateFin.getMonth() + 1).padStart(2, '0')}/${dateFin.getFullYear()}`;
+
+  doc.text(`Fin du délai de rétractation : ${dateFinStr}`, 20, y); y += saut + 5;
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(11);
+  doc.text("Les clients ou acheteurs ont 48 heures pour changer d'avis. Au-delà, aucun remboursement ni autre changement n’est possible.", 20, y, { maxWidth: 170 });
+  y += 15;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+
+  // Signatures
+  const vendeurSig = document.getElementById("canvasVendeur").toDataURL("image/png");
+  const acheteurSig = document.getElementById("canvasAcheteur").toDataURL("image/png");
+
+  doc.text("Signature Vendeur :", 20, y); y += 5;
+  doc.addImage(vendeurSig, "PNG", 20, y, 60, 20); y += 25;
+
+  doc.text("Signature Acheteur :", 20, y); y += 5;
+  doc.addImage(acheteurSig, "PNG", 20, y, 60, 20); y += 30;
+
+  // QR Code
+  const encoded = document.getElementById("codeEncodé").value;
+  if (encoded) {
+    await QRCode.toDataURL(encoded, {
+      width: 512,           // Résolution haute
+      margin: 2,            // Meilleure lisibilité
+      color: {
+        dark: "#000000",
+        light: "#ffffff"
+      }
+    }, (err, url) => {
+      if (!err) {
+        doc.text("QR Code :", 20, y);
+        doc.addImage(url, "PNG", 130, y + 5, 50, 50); // Taille plus grande dans le PDF
+      }
+    });
+  }
+
+  doc.save("contrat_mwolloccaz.pdf");
+}
+
+    function inverserMontants() {
+      const euro = document.getElementById("montant").value;
+      const mwal = document.getElementById("montant_mwal").value;
+      document.getElementById("montant").value = mwal;
+      document.getElementById("montant_mwal").value = euro;
+    }
+    function collecterDonnees() {
+      return {
+        id: crypto.randomUUID(),
+        vendeur: document.getElementById("vendeur").value,
+        acheteur: document.getElementById("acheteur").value,
+        montant: document.getElementById("montant").value,
+        montant_mwal: document.getElementById("montant_mwal").value,
+        devise: document.getElementById("devise").value,
+        paiement: document.getElementById("paiement").value,
+        description: document.getElementById("description").value,
+        ville: document.getElementById("ville").value,
+        date: document.getElementById("date").value.split("-").reverse().join("/")
+      };
+    }
+    function genererQR() {
+      const data = collecterDonnees();
+      const json = JSON.stringify(data);
+      const encoded = encodeURIComponent(json);
+      document.getElementById("codeEncodé").value = encoded;
+      QRCode.toDataURL(encoded, { width: 200 }, (err, url) => {
+        const qrDiv = document.getElementById("qr");
+        qrDiv.innerHTML = "";
+        if (err) {
+          qrDiv.innerText = "Erreur QR : " + err.message;
+        } else {
+          const img = new Image();
+          img.src = url;
+          qrDiv.appendChild(img);
+        }
+      });
+    }
+    function copierContenu() {
+      const texte = document.getElementById("codeEncodé");
+      texte.select();
+      document.execCommand("copy");
+      alert("QR encodé copié dans le presse-papiers ✅");
+    }
+    function clearCanvas(id) {
+      const canvas = document.getElementById(id);
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    ['canvasVendeur', 'canvasAcheteur'].forEach(id => {
+      const canvas = document.getElementById(id);
+      const ctx = canvas.getContext("2d");
+      let isDrawing = false;
+      const startDrawing = (x, y) => {
+        isDrawing = true;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      };
+      const draw = (x, y) => {
+        if (!isDrawing) return;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#000";
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      };
+      const stopDrawing = () => {
+        isDrawing = false;
+        ctx.beginPath();
+      };
+      canvas.addEventListener("mousedown", e => {
+  	const rect = canvas.getBoundingClientRect();
+  	const scaleX = canvas.width / rect.width;
+  	const scaleY = canvas.height / rect.height;
+  	startDrawing((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      });
+
+      canvas.addEventListener("mousemove", e => {
+  	const rect = canvas.getBoundingClientRect();
+  	const scaleX = canvas.width / rect.width;
+  	const scaleY = canvas.height / rect.height;
+  	draw((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      });
+
+      canvas.addEventListener("mouseup", stopDrawing);
+      canvas.addEventListener("mouseleave", stopDrawing);
+      canvas.addEventListener("touchstart", e => {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        startDrawing(touch.clientX - rect.left, touch.clientY - rect.top);
+        e.preventDefault();
+      });
+      canvas.addEventListener("touchmove", e => {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        draw(touch.clientX - rect.left, touch.clientY - rect.top);
+        e.preventDefault();
+      });
+      canvas.addEventListener("touchend", stopDrawing);
+      canvas.addEventListener("touchcancel", stopDrawing);
+    });
+  </script>
+</body>
+</html>
