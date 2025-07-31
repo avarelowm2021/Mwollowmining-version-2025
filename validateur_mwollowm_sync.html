@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Validateur Mwollowm Pro</title>
+  <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0d1117;
+      color: #fff;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #00ffcc;
+    }
+    textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: none;
+    }
+    textarea {
+      height: 100px;
+      background: #161b22;
+      color: #0f0;
+    }
+    button {
+      background: #00ffcc;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #stats {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+    #chart-container {
+      background: #161b22;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    canvas {
+      background: #222;
+      border-radius: 10px;
+    }
+    .data-block {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📈 Cours Mwollowm en temps réel</h1>
+
+  <div id="stats">
+    <div class="data-block">💰 Cours actuel : <strong id="currentTaux">0.00000000</strong> €</div>
+    <div class="data-block">🕒 Dernière mise à jour : <span id="lastUpdate">-</span></div>
+    <div class="data-block">📊 Volume total : <span id="volume">0</span> transactions</div>
+  </div>
+
+  <div id="chart-container">
+    <canvas id="mwalChart" width="800" height="400"></canvas>
+  </div>
+
+  <h2>✍️ Ajouter une nouvelle validation</h2>
+  <textarea id="jsonInput" placeholder='{"taux": 0.00000069, "auteur": "moi"}'></textarea>
+  <button onclick="submitMwal()">Valider</button>
+
+  <script>
+    const gun = Gun(['https://gun-dfax.onrender.com/gun']);
+    const node = gun.get('mwollowm_blocs');
+
+    const tauxElement = document.getElementById("currentTaux");
+    const updateElement = document.getElementById("lastUpdate");
+    const volumeElement = document.getElementById("volume");
+
+    let transactions = [];
+
+    const ctx = document.getElementById("mwalChart").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Cours du Mwollowm',
+          data: [],
+          borderColor: '#00ffcc',
+          backgroundColor: 'rgba(0,255,204,0.1)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        scales: {
+          x: {
+            ticks: { color: "#fff" }
+          },
+          y: {
+            beginAtZero: false,
+            ticks: {
+              color: "#fff",
+              callback: function(value) {
+                return value.toFixed(8);
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: "#00ffcc" }
+          }
+        }
+      }
+    });
+
+    node.map().on((data, key) => {
+      if (!data || data.type !== 'json' || !data.montant) return;
+
+      const taux = parseFloat(data.montant);
+      const time = new Date(data.timestamp || Date.now());
+      const label = time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
+
+      transactions.push({ taux, time });
+
+      tauxElement.textContent = taux.toFixed(8);
+      updateElement.textContent = label;
+      volumeElement.textContent = transactions.length;
+
+      chart.data.labels.push(label);
+      chart.data.datasets[0].data.push(taux);
+      chart.update();
+    });
+
+    function submitMwal() {
+      const input = document.getElementById("jsonInput").value;
+      try {
+        const json = JSON.parse(input);
+        json.timestamp = new Date().toISOString();
+        json.type = "json";
+        json.montant = json.taux;
+        delete json.taux;
+        node.set(json);
+        document.getElementById("jsonInput").value = "";
+      } catch (e) {
+        alert("⚠️ Erreur dans le format JSON !");
+      }
+    }
+  </script>
+</body>
+</html>
