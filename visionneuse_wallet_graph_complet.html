@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Visionneuse complète MWAL & LUTH</title>
+  <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #111; color: white; padding: 20px; }
+    h1, h2 { color: lime; }
+    .section { margin-top: 30px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border: 1px solid #444; text-align: left; }
+    th { background-color: #333; }
+    tr:nth-child(even) { background-color: #222; }
+  </style>
+</head>
+<body>
+  <h1>Visionneuse complète MWAL + LUTH</h1>
+
+  <div class="section">
+    <h2>🪙 Transactions Tokens</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Montant</th><th>Date</th></tr></thead>
+      <tbody id="tableTokens"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🎖️ Récompenses LUTH</h2>
+    <table>
+      <thead><tr><th>Wallet</th><th>Montant</th><th>Date</th></tr></thead>
+      <tbody id="tableLuths"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🏅 Classement des Wallets (LUTH cumulés)</h2>
+    <table>
+      <thead><tr><th>Wallet</th><th>Total LUTH</th></tr></thead>
+      <tbody id="classementWallets"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>📊 Graphique des Récompenses</h2>
+    <canvas id="chartRecompenses" width="400" height="200"></canvas>
+  </div>
+
+  <div class="section">
+    <h2>📈 Cumulatif MWAL vs LUTH</h2>
+    <canvas id="chartCumulatif" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    const gun = Gun(["https://gun-encaissement.onrender.com/gun"]);
+
+    const tableTokens = document.getElementById("tableTokens");
+    const tableLuths = document.getElementById("tableLuths");
+    const classementWallets = document.getElementById("classementWallets");
+
+    const walletTotals = {};
+    let cumulMWAL = 0;
+    let cumulLUTH = 0;
+
+    const ctxBar = document.getElementById("chartRecompenses").getContext("2d");
+    const chartRecompenses = new Chart(ctxBar, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: "LUTH", data: [], backgroundColor: "limegreen" }] },
+      options: {
+        responsive: true,
+        plugins: {
+          zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, mode: 'x' } },
+          legend: { labels: { color: "white" } }
+        },
+        scales: {
+          x: { ticks: { color: "white" } },
+          y: { ticks: { color: "white" }, beginAtZero: true }
+        }
+      }
+    });
+
+    const ctxLine = document.getElementById("chartCumulatif").getContext("2d");
+    const chartCumulatif = new Chart(ctxLine, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Cumul MWAL", data: [], borderColor: "cyan", fill: false },
+          { label: "Cumul LUTH", data: [], borderColor: "lime", fill: false }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, mode: 'x' } },
+          legend: { labels: { color: "white" } }
+        },
+        scales: {
+          x: { ticks: { color: "white" } },
+          y: { ticks: { color: "white" }, beginAtZero: true }
+        }
+      }
+    });
+
+    gun.get("tokens_encaissés").map().on((data, id) => {
+      if (!data || document.getElementById("row-" + id)) return;
+      const row = document.createElement("tr");
+      row.id = "row-" + id;
+      row.innerHTML = `<td>${id}</td><td>${(data.cumulative_balance || 0).toFixed(10)}</td><td>${new Date(data.date_time || Date.now()).toLocaleString()}</td>`;
+      tableTokens.appendChild(row);
+
+      cumulMWAL += (data.cumulative_balance || 0) / 0.0000069444444444;
+      chartCumulatif.data.labels.push(new Date(data.date_time || Date.now()).toLocaleString());
+      chartCumulatif.data.datasets[0].data.push(cumulMWAL);
+      chartCumulatif.data.datasets[1].data.push(cumulLUTH);
+      chartCumulatif.update();
+    });
+
+    gun.get("luth_recompenses").map().on((data, id) => {
+      if (!data || document.getElementById("luth-" + id)) return;
+
+      const row = document.createElement("tr");
+      row.id = "luth-" + id;
+      const wallet = data.wallet || id;
+      const montant = parseFloat(data.montant || 0);
+      row.innerHTML = `<td>${wallet}</td><td>${montant.toFixed(2)} LUTH</td><td>${new Date(data.date_time || Date.now()).toLocaleString()}</td>`;
+      tableLuths.appendChild(row);
+
+      walletTotals[wallet] = (walletTotals[wallet] || 0) + montant;
+      cumulLUTH += montant;
+
+      chartRecompenses.data.labels.push(wallet.slice(0, 8));
+      chartRecompenses.data.datasets[0].data.push(montant);
+      chartRecompenses.update();
+
+      chartCumulatif.data.labels.push(new Date(data.date_time || Date.now()).toLocaleString());
+      chartCumulatif.data.datasets[0].data.push(cumulMWAL);
+      chartCumulatif.data.datasets[1].data.push(cumulLUTH);
+      chartCumulatif.update();
+
+      renderClassement();
+    });
+
+    function renderClassement() {
+      classementWallets.innerHTML = "";
+      Object.entries(walletTotals)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([wallet, total]) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${wallet}</td><td>${total.toFixed(2)} LUTH</td>`;
+          classementWallets.appendChild(row);
+        });
+    }
+  </script>
+</body>
+</html>
