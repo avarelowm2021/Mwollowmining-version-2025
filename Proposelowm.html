@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code Automatique – MWAL</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input {
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+      width: 100%;
+      background: #222;
+      border: 1px solid #444;
+      color: #fff;
+    }
+    #qr-code {
+      margin-top: 20px;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #1c1c1c;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    pre {
+      background: #000;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>QR Code – Bloc MWAL</h2>
+    <label for="taux">Taux (en MWAL) :</label>
+    <input type="number" id="taux" step="0.000001" placeholder="Ex: 0.000136" />
+
+    <div id="json-output"></div>
+    <canvas id="qr-code"></canvas>
+  </div>
+
+  <script>
+    const tauxInput = document.getElementById("taux");
+
+    tauxInput.addEventListener("input", () => {
+      const taux = parseFloat(tauxInput.value);
+      if (isNaN(taux) || taux <= 0) return;
+
+      const date = new Date().toISOString().split("T")[0];
+      const variation = Math.round(taux * 144000); // ajustable
+
+      const bloc = {
+        devise: "",
+        taux: taux,
+        date: date,
+        variation: variation
+      };
+
+      const blocString = JSON.stringify(bloc, null, 2);
+      document.getElementById("json-output").innerHTML = `<pre>${blocString}</pre>`;
+
+      const canvas = document.getElementById("qr-code");
+      QRCode.toCanvas(canvas, blocString, function (error) {
+        if (error) console.error(error);
+      });
+    });
+  </script>
+</body>
+</html>
