@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MWAL – Wallet temps réel (envoyer & recevoir)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl/nacl-fast.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+  :root{--bg:#0b0f14;--card:#0f1723;--ink:#e8fff1;--mut:#9cc;--acc:#58f2b0;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
+  h1{margin:0 0 12px;color:var(--acc)}
+  .grid{display:grid;gap:14px}
+  @media(min-width:1000px){.grid{grid-template-columns:1.1fr .9fr}}
+  .card{background:var(--card);border:1px solid #203043;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 8px 26px rgba(0,0,0,.25)}
+  label{font-size:13px;color:#a8c7cf}
+  input,textarea,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #243446;background:#0e1521;color:var(--ink)}
+  button{cursor:pointer;background:linear-gradient(180deg,#5ef0bd,#27ce93);border:none;color:#063;font-weight:800}
+  button.ghost{background:#0e1521;border:1px dashed #2e5248;color:#9ff}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .big{font-size:26px;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{border-bottom:1px solid #24364a;padding:8px;text-align:left}
+  th{color:#cfe}
+  .muted{color:var(--mut);font-size:13px}
+  #qrcode canvas,#rqrc canvas{margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MWAL – Wallet (live)</h1>
+
+  <!-- Connexion -->
+  <div class="card">
+    <div class="row">
+      <input id="peers" class="mono" value="https://gun-encaissement.onrender.com/gun, https://gun-encaissement777.onrender.com/gun">
+      <button id="btnConnect" class="ghost">Connexion / Reconnexion</button>
+    </div>
+    <div id="net" class="muted" style="margin-top:6px">Hors ligne</div>
+  </div>
+
+  <div class="grid">
+    <!-- Col A: identité, recevoir, envoyer -->
+    <div>
+      <!-- Clés & adresse -->
+      <div class="card">
+        <h3 style="margin-top:0">Mon identité</h3>
+        <div class="row">
+          <button id="btnNew">Générer une clé</button>
+          <button id="btnExport" class="ghost">Exporter la clé (JSON)</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="pub" class="mono" placeholder="pub(Base64)" readonly>
+          <input id="sec" class="mono" type="password" placeholder="sec(Base64)" readonly>
+        </div>
+        <details style="margin-top:8px">
+          <summary>Importer une clé existante</summary>
+          <div class="row" style="margin-top:8px">
+            <textarea id="imp" rows="3" class="mono" placeholder='{"pubBase64":"...","secBase64":"..."}'></textarea>
+            <button id="btnImport" class="ghost">Importer</button>
+          </div>
+        </details>
+
+        <div class="row" style="margin-top:10px;align-items:flex-start">
+          <div style="flex:1;min-width:260px">
+            <div class="muted">Mon adresse</div>
+            <div class="row">
+              <input id="addr" class="mono" readonly>
+              <button id="btnCopy" class="ghost" style="width:auto">📋 Copier</button>
+            </div>
+            <div class="muted" style="margin-top:6px">Nonce réseau : <span id="nonce" class="mono">0</span></div>
+          </div>
+          <div id="qrcode"></div>
+          <div style="flex:1">
+            <div class="muted">Solde</div>
+            <div id="balance" class="big">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recevoir -->
+      <div class="card">
+        <h3 style="margin-top:0">Recevoir des MWAL</h3>
+        <div class="row">
+          <input id="reqAmount" type="number" min="1" step="1" placeholder="Montant demandé (ex: 25)">
+          <button id="btnMakeReq">Générer la demande (QR)</button>
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Format: <code>mwalpay:&lt;address&gt;?amount=&lt;n&gt;</code>
+        </div>
+        <div id="rqrlink" class="mono" style="margin-top:6px;word-break:break-all"></div>
+        <div id="rqrc"></div>
+      </div>
+
+      <!-- Envoyer -->
+      <div class="card">
+        <h3 style="margin-top:0">Envoyer des MWAL (TRANSFER signé)</h3>
+        <div class="row">
+          <input id="to" class="mono" placeholder="destinataire (mwal1-...)">
+          <input id="amount" type="number" min="1" step="1" placeholder="montant (ex: 10)">
+          <button id="btnSend">Envoyer</button>
+        </div>
+        <div id="sendStatus" class="muted" style="margin-top:8px"></div>
+        <div class="muted" style="margin-top:4px">
+          La TX inclut <code>from_pub_b64</code>, <code>nonce</code>, <code>sig_b64</code> et va dans <code>mwal_ledger_v1</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Col B: historique live -->
+    <div>
+      <div class="card">
+        <h3 style="margin-top:0">Historique (live)</h3>
+        <div style="max-height:560px;overflow:auto">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>De</th><th>→</th><th>Montant</th><th>ID</th></tr></thead>
+            <tbody id="tblTx"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== State & helpers ===== */
+let gun=null, my={pub:null, sec:null, addr:''}, balance=0, netNonce=0;
+let seenTx = Object.create(null); // anti-doublon pour l'écoute live
+const txs = [];                   // historique
+let initialLoaded=false;
+const enc = new TextEncoder();
+
+function b64(u){let s='';u.forEach(b=>s+=String.fromCharCode(b));return btoa(s);}
+function b64toBytes(s){const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+async function sha256(bytes){const buf=await crypto.subtle.digest('SHA-256', bytes);return new Uint8Array(buf);}
+function toHex(u8){return [...u8].map(b=>b.toString(16).padStart(2,'0')).join('');}
+function base64url(u8){return btoa(String.fromCharCode(...u8)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function addressFromPub(pub){return sha256(pub).then(h=>`mwal1-${base64url(h).slice(0,36)}`);}
+function toNum(x){const n=Number(x);return Number.isFinite(n)?n:0;}
+function setText(id,val){document.getElementById(id).textContent=val;}
+function getVal(id){return document.getElementById(id).value.trim();}
+
+/* ===== QR helpers ===== */
+function renderQR(holderId, text, size=140){
+  const holder = document.getElementById(holderId);
+  holder.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  holder.appendChild(canvas);
+  QRCode.toCanvas(canvas, text, { width:size, margin:1 }, (err)=>{ if(err) console.error('QR error:', err); });
+}
+
+/* ===== Network ===== */
+function connect(){
+  try{ if(gun && gun.off) gun.off(); }catch(e){}
+  const peers=getVal('peers').split(',').map(s=>s.trim()).filter(Boolean);
+  gun = Gun(peers);
+  document.getElementById('net').textContent = "Connecté : " + peers.join(" | ");
+  if(my.addr) watchNonce();
+  loadInitialAndSubscribe();
+}
+
+/* ===== Keys ===== */
+function setKey(pub, sec){
+  my.pub=pub; my.sec=sec;
+  const pubB64=b64(pub), secB64=b64(sec);
+  document.getElementById('pub').value=pubB64;
+  document.getElementById('sec').value=secB64;
+  localStorage.setItem('mwal_user_key', JSON.stringify({pubBase64:pubB64, secBase64:secB64}));
+  addressFromPub(pub).then(addr=>{
+    my.addr=addr;
+    document.getElementById('addr').value=addr;
+    renderQR('qrcode', addr, 140);
+    watchNonce();
+    if(gun) loadInitialAndSubscribe();
+  });
+}
+function newKey(){ const kp=nacl.sign.keyPair(); setKey(kp.publicKey, kp.secretKey); }
+function loadKey(){
+  const raw=localStorage.getItem('mwal_user_key'); if(!raw) return false;
+  try{ const o=JSON.parse(raw); if(!o.pubBase64||!o.secBase64) return false;
+       setKey(b64toBytes(o.pubBase64), b64toBytes(o.secBase64)); return true; }catch{return false;}
+}
+
+/* ===== Nonce réseau ===== */
+function watchNonce(){
+  if(!my.addr) return;
+  gun.get("mwal_nonces").get(my.addr).on(v=>{
+    netNonce = Math.max(toNum(v), netNonce);
+    setText('nonce', netNonce);
+  });
+}
+
+/* ===== Ledger: charge historique puis écoute live ===== */
+function pushTx(tx, id){
+  // insère trié (simple: push puis tri/limite)
+  txs.push({t:tx.t||0, kind:String(tx.kind), from:tx.from||'', to:tx.to||'', amount:toNum(tx.amount)||0, id:id||tx.id||tx.hash||''});
+  txs.sort((a,b)=> (b.t||0)-(a.t||0));
+  if(txs.length>2000) txs.length=2000; // limite mémoire
+  renderTx();
+}
+
+function applyToBalance(tx){
+  const k=String(tx.kind), from=tx.from||'', to=tx.to||'', amt=toNum(tx.amount)||0;
+  if(k==='GENESIS' || k==='MINT_GENESIS' || k==='MINT_V' || k==='MINT_P'){
+    if(to===my.addr) balance += amt;
+  }else if(k==='TRANSFER'){
+    if(to===my.addr) balance += amt;
+    if(from===my.addr) balance -= amt;
+  }else if(k==='BURN_V' || k==='BURN_P'){
+    if(from===my.addr) balance -= amt;
+  }
+  setText('balance', balance);
+}
+
+function loadInitialAndSubscribe(){
+  if(!gun || !my.addr) return;
+  seenTx = Object.create(null);
+  txs.length = 0;
+  balance = 0;
+  setText('balance', 0);
+  initialLoaded = false;
+
+  const GEN="mwal_genesis_v1", LED="mwal_ledger_v1";
+
+  // 1) Charger historique (snapshot)
+  gun.get(GEN).map().once(rec=>{
+    if(!rec||!rec.wallet) return;
+    if(String(rec.wallet)!==my.addr) return;
+    const tx={kind:rec.type||'GENESIS', from:'GENESIS', to:my.addr, amount:toNum(rec.amount_mwal)||0, t:rec.t||0};
+    applyToBalance(tx); pushTx(tx, `gen:${my.addr}`);
+  });
+
+  gun.get(LED).map().once(tx=>{
+    if(!tx||!tx.kind||!tx.t) return;
+    const k=String(tx.kind), from=tx.from||'', to=tx.to||'', amt=toNum(tx.amount)||0;
+    const id = tx.id || tx.hash || '';
+    // me concerne ?
+    if(!(to===my.addr || from===my.addr || (k==='MINT_GENESIS' && to===my.addr))) return;
+    if(seenTx[id]) return; seenTx[id]=1;
+    applyToBalance(tx); pushTx(tx, id);
+  });
+
+  // 2) Après un court délai, on lance l'écoute live
+  setTimeout(()=>{
+    initialLoaded = true;
+    subscribeLive(LED);
+  }, 1200);
+}
+
+function subscribeLive(LED){
+  gun.get(LED).map().on((tx, id)=>{
+    if(!initialLoaded) return; // attend la phase snapshot
+    if(!tx||!tx.kind||!tx.t) return;
+    if(seenTx[id]) return; // déjà vu
+    const k=String(tx.kind), from=tx.from||'', to=tx.to||'';
+    if(!(to===my.addr || from===my.addr || (k==='MINT_GENESIS' && to===my.addr))) return;
+    seenTx[id]=1;
+    applyToBalance(tx); pushTx(tx, id);
+  });
+}
+
+/* ===== Historique rendu ===== */
+function renderTx(){
+  const tbody=document.getElementById('tblTx'); tbody.innerHTML='';
+  for(const r of txs){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(r.t||0).toLocaleString()}</td>
+      <td>${r.kind}</td>
+      <td class="mono">${(r.from||'').slice(0,16)}${r.from?'…':''}</td>
+      <td class="mono">${(r.to||'').slice(0,16)}${r.to?'…':''}</td>
+      <td>${r.amount}</td>
+      <td class="mono">${(r.id||'').slice(0,18)}${r.id?'…':''}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ===== Copier adresse (HTTPS + fallback) ===== */
+async function copyAddr(){
+  const input = document.getElementById('addr');
+  const val = input.value;
+  try{ await navigator.clipboard.writeText(val); alert('Adresse copiée ✅'); return; }
+  catch(e){ console.warn('clipboard API indisponible, fallback', e); }
+  const wasRO = input.readOnly; input.readOnly=false; input.focus(); input.select(); input.setSelectionRange(0, val.length);
+  const ok = document.execCommand('copy'); input.readOnly = wasRO;
+  alert(ok ? 'Adresse copiée ✅' : 'Impossible de copier — sélectionne et copie manuellement.');
+}
+
+/* ===== Demander un paiement (QR) ===== */
+function makeRequestQR(){
+  const n = Math.max(1, Math.floor(Number(getVal('reqAmount')||0)));
+  if(!my.addr) return alert("Adresse inconnue.");
+  const payload = `mwalpay:${my.addr}?amount=${n}`;
+  document.getElementById('rqrlink').textContent = payload;
+  renderQR('rqrc', payload, 180);
+}
+
+/* ===== Envoi signé ===== */
+async function send(){
+  const to = getVal('to');
+  const amt = Math.floor(Number(getVal('amount')||0));
+  const status=document.getElementById('sendStatus');
+
+  try{
+    if(!my.addr || !my.pub || !my.sec) throw new Error("Clé/Adresse inconnue.");
+    if(!to) throw new Error("Destinataire manquant.");
+    if(!amt || amt<=0) throw new Error("Montant invalide (entier > 0).");
+
+    // Vérifie solde local
+    if(amt > balance) throw new Error("Solde insuffisant.");
+
+    // Nonce = max(réseau, affiché) + 1
+    const nonce = Math.max(netNonce, Number(document.getElementById('nonce').textContent)||0) + 1;
+    const t = Date.now();
+    const from_pub_b64 = b64(my.pub);
+    const msg = `TRANSFER|${my.addr}|${to}|${amt}|${nonce}|${t}`;
+    const sig_b64 = b64(nacl.sign.detached(enc.encode(msg), my.sec));
+
+    const tx = { kind:"TRANSFER", from:my.addr, to, amount:amt, nonce, t, from_pub_b64, sig_b64 };
+    const id = await (async ()=>{ const data=enc.encode(msg+"|"+sig_b64); return toHex(await sha256(data)); })();
+
+    gun.get("mwal_ledger_v1").get(id).put(tx);
+    gun.get("mwal_nonces").get(my.addr).put(nonce);
+
+    status.textContent = "✅ Transaction envoyée.";
+    document.getElementById('amount').value='';
+  }catch(e){
+    status.textContent = "❌ " + e.message;
+  }
+}
+
+/* ===== UI bindings ===== */
+document.getElementById('btnConnect').onclick = connect;
+document.getElementById('btnNew').onclick = newKey;
+document.getElementById('btnExport').onclick = ()=>{
+  if(!my.pub||!my.sec) return alert("Pas de clé");
+  const data=JSON.stringify({pubBase64:b64(my.pub), secBase64:b64(my.sec)});
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=Object.assign(document.createElement('a'),{href:url,download:'mwal_user_key.json'});
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+};
+document.getElementById('btnImport').onclick = ()=>{
+  try{
+    const obj=JSON.parse(document.getElementById('imp').value.trim());
+    if(!obj.pubBase64||!obj.secBase64) throw new Error("Format invalide");
+    setKey(b64toBytes(obj.pubBase64), b64toBytes(obj.secBase64));
+    alert("Clé importée.");
+  }catch(e){ alert("Erreur import : "+e.message); }
+};
+document.getElementById('btnCopy').onclick = copyAddr;
+document.getElementById('btnSend').onclick = send;
+document.getElementById('btnMakeReq').onclick = makeRequestQR;
+
+/* ===== Boot ===== */
+(function boot(){
+  connect();
+  if(!loadKey()) newKey();
+})();
+</script>
+</body>
+</html>
