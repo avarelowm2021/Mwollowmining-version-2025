@@ -1,0 +1,823 @@
+<html><head><base href="/">
+<meta charset="UTF-8">
+<title>/v/O:O\v\MwollowmDB2</title>
+<!-- Adding jsPDF CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Adding QRious for QR code generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<!-- Adding QR Scanner -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<!-- Add Chart.js CDN before other scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --primary: #2196f3;
+    --secondary: #ff9800;
+    --dark: #212121;
+    --light: #f5f5f5;
+  }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: var(--light);
+    transition: all 0.3s ease;
+  }
+
+  body.dark-mode {
+    --primary: #1565c0;
+    --secondary: #f57c00;
+    --dark: #121212;
+    --light: #333333;
+    background: var(--dark);
+    color: white;
+  }
+
+  .register {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .register {
+    background: #424242;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .display {
+    background: var(--dark);
+    color: white;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    min-height: 100px;
+  }
+
+  .dark-mode .display {
+    background: #000;
+    border: 1px solid #555;
+  }
+
+  .total-amount {
+    font-size: 2em;
+    color: var(--secondary);
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .pal-amount {
+    font-size: 1.5em;
+    color: lime;
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  .dark-mode .pal-amount {
+    color: lime;
+  }
+
+  .pal-euro-value {
+    font-size: 1.5em;
+    color: #e6e6fa; 
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .buttons:last-of-type {
+    grid-template-columns: 1fr;
+    margin-top: 10px;
+  }
+
+  button {
+    padding: 15px;
+    border: none;
+    border-radius: 4px;
+    background: var(--primary);
+    color: white;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+  }
+
+  .log {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode .log {
+    background: #212121;
+    color: #ffffff;
+  }
+
+  .success {
+    color: #28a745;
+  }
+
+  .error {
+    color: #dc3545;
+  }
+
+  .input-area {
+    margin-bottom: 20px;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    min-height: 80px;
+    font-family: monospace;
+    transition: all 0.3s ease;
+  }
+
+  .dark-mode textarea {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .theme-toggle {
+    background: #666;
+    color: white;
+  }
+
+  .dark-mode .theme-toggle {
+    background: #888;
+  }
+
+  #qr-reader {
+    width: 100%;
+    margin: 20px 0;
+  }
+  
+  #qrCanvas {
+    display: none;
+  }
+  
+  .qr-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+  }
+  
+  .dark-mode .qr-section {
+    background: #212121;
+  }
+  
+  .memory-info {
+    margin: 20px 0;
+    padding: 15px;
+    background: #e9ecef;
+    border-radius: 4px;
+  }
+  
+  .dark-mode .memory-info {
+    background: #2c2c2c;
+  }
+  
+  .transfer-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+  }
+
+  .dark-mode .transfer-section {
+    background: #212121;
+  }
+
+  .input-group {
+    margin: 10px 0;
+  }
+
+  .input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1.1em;
+  }
+
+  .dark-mode .input-group input {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+  
+  /* Add after .transfer-section styles */
+  .graph-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    height: 300px;
+  }
+
+  .dark-mode .graph-section {
+    background: #212121;
+  }
+  
+  /* Update euro amount display style if needed */
+  .euro-amount {
+    font-size: 1.5em;
+    color: turquoise;
+    text-align: center;
+    margin: 5px 0;
+  }
+  
+  .btc-value {
+    font-size: 1.5em;
+    color: yellow;
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  .floating-btc {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    color: yellow;
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1000;
+  }
+
+  .dark-mode .floating-btc {
+    background: rgba(255,255,255,0.1);
+  }
+</style>
+</head>
+<body>
+  <div class="register">
+    <h1>/v/O:O\v\MwollowmDB2</h1>
+    
+    <div class="input-area">
+      <label for="dataInput">Saisir les donn&#xe9;es (format Base64):</label>
+      <textarea id="dataInput" placeholder="Collez vos donn&#xe9;es Base64 ici..."></textarea>
+    </div>
+
+    <div class="qr-section">
+      <h3>Scanner QR Code</h3>
+      <div id="qr-reader"></div>
+      <div id="qr-reader-results"></div>
+    </div>
+
+    <div class="display" id="display">
+      Entr&#xe9;e de donn&#xe9;es en attente...
+    </div>
+    
+    <div class="total-amount" id="totalAmount">
+      Total: 0.00000000
+    </div>
+
+    <div class="pal-amount" id="palAmount">
+      0.00000000 PAL
+    </div>
+    <div class="pal-euro-value" id="palEuroValue">
+      0.00000000 &#x20ac;
+    </div>
+
+    <div class="memory-info" id="memoryInfo">
+      Informations m&#xe9;moire: Aucune donn&#xe9;e
+    </div>
+
+    <div class="buttons">
+      <button onclick="processData()">Traiter les donn&#xe9;es</button>
+      <button onclick="clearDisplay()">Effacer</button>
+      <button onclick="exportData()">Exporter</button>
+      <button onclick="generatePDF()">G&#xe9;n&#xe9;rer PDF</button>
+      <button onclick="toggleDarkMode()" class="theme-toggle">Mode Nuit</button>
+    </div>
+
+    <div class="buttons">
+      <button onclick="toggleScanner()" id="scannerToggle">Ouvrir Scanner</button>
+    </div>
+
+    <canvas id="qrCanvas"></canvas>
+    
+    <div class="buttons">
+      <button onclick="createTransferQR()">Cr&#xe9;er QR de transfert</button>
+      <button onclick="toggleTransferScanner()" id="transferScannerToggle">Scanner transfert</button>
+    </div>
+
+    <div class="transfer-section">
+      <div id="transfer-qr-display"></div>
+      <div id="transfer-scanner"></div>
+      <div class="input-group">
+        <input type="number" id="transferAmount" step="0.00000001" min="0" placeholder="Montant &#xe0; transf&#xe9;rer">
+      </div>
+    </div>
+    
+    <div class="input-group">
+      <label for="euroInput">Cours actuel:</label>
+      <input type="number" id="euroInput" step="0.00000001" min="0" placeholder="Saisir le cours actuel">
+    </div>
+    <div class="euro-amount" id="euroAmount">
+      0.00000000 &#x20ac;
+    </div>
+    <div class="btc-value" id="btcValue">
+      0.00000000 BTC
+    </div>
+    <div class="floating-btc" id="floatingBtc">
+      BTC: 0.00000000
+    </div>
+    
+    <div class="graph-section">
+      <canvas id="transactionGraph"></canvas>
+    </div>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+<script>
+window.jsPDF = window.jspdf.jsPDF;
+let transactions = [];
+let totalValue = 0;
+let processingTimeout = null;
+let qrScanner = null;
+let transferScanner = null;
+let transactionChart = null;
+let euroUpdateTimeout;
+let btcPrice = 0;
+let btcUpdateInterval;
+
+function initQRScanner() {
+  qrScanner = new Html5Qrcode("qr-reader");
+}
+
+function processMemoryData(memoryData) {
+  try {
+    transactions = memoryData.transactions || [];
+    totalValue = memoryData.totalValue || 0;
+    updateMemoryInfo(memoryData);
+    updateDisplay();
+    logMessage('Données mémoire importées avec succès', 'success');
+  } catch (error) {
+    logMessage(`Erreur de traitement des données mémoire: ${error.message}`, 'error');
+  }
+}
+
+function updateMemoryInfo(memoryData) {
+  const memoryInfo = document.getElementById('memoryInfo');
+  memoryInfo.innerHTML = `
+    <h4>Informations mémoire:</h4>
+    <p>Date d'export: ${new Date(memoryData.exportDate).toLocaleString()}</p>
+    <p>Nombre de transactions: ${memoryData.totalTransactions}</p>
+    <p>Valeur totale: ${memoryData.totalValue.toFixed(8)}</p>
+  `;
+}
+
+function updateDisplay() {
+  document.getElementById('totalAmount').textContent = `Total: ${totalValue.toFixed(8)}`;
+  const palValue = totalValue / 0.00000694444444444444;
+  document.getElementById('palAmount').textContent = `${palValue.toFixed(8)} PAL`;
+  const euroAmount = document.getElementById('euroInput').value || 0;
+  const palEuroValue = palValue * euroAmount;
+  document.getElementById('palEuroValue').textContent = `${palEuroValue.toFixed(8)} €`;
+  document.getElementById('display').innerHTML = `
+      <pre>Dernière transaction:
+${transactions.length > 0 ? JSON.stringify(transactions[transactions.length - 1], null, 2) : 'Aucune transaction'}</pre>
+    `;
+  updateTransactionGraph();
+}
+
+function generateQRCode(data) {
+  const qr = new QRious({
+    element: document.getElementById('qrCanvas'),
+    value: data,
+    size: 400
+  });
+  return document.getElementById('qrCanvas').toDataURL();
+}
+
+function generatePDF() {
+  const doc = new jsPDF();
+  doc.setFontSize(20);
+  doc.text('Rapport de Caisse', 20, 20);
+  doc.setFontSize(12);
+  doc.text(`Date du rapport: ${new Date().toLocaleString()}`, 20, 30);
+  doc.text(`Solde total: ${totalValue.toFixed(8)}`, 20, 40);
+  doc.text(`Nombre de transactions: ${transactions.length}`, 20, 50);
+  const valueData = {
+    v: totalValue,
+    h: crypto.randomUUID(),
+    t: Date.now()
+  };
+  const qrDataString = btoa(JSON.stringify(valueData));
+  const qrDataUrl = generateQRCode(qrDataString);
+  doc.addImage(qrDataUrl, 'PNG', 20, 60, 50, 50);
+  doc.text('Scanner ce QR code pour recevoir le montant total', 20, 120);
+  let yPosition = 130;
+  let xPosition = 20;
+  const qrSize = 30;
+  const textWidth = 120;
+  transactions.forEach((transaction, index) => {
+    if (yPosition > 270) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    const transactionQR = generateQRCode(btoa(JSON.stringify(transaction)));
+    doc.addImage(transactionQR, 'PNG', xPosition, yPosition, qrSize, qrSize);
+    const transactionText = `${index + 1}. Hash: ${transaction.h.substring(0, 8)}... | Valeur: ${transaction.v} | Date: ${new Date(transaction.t).toLocaleString()}`;
+    doc.text(transactionText, xPosition + qrSize + 5, yPosition + qrSize / 2);
+    yPosition += qrSize + 10;
+  });
+  doc.save(`caisse_rapport_${Date.now()}.pdf`);
+  logMessage('PDF généré avec succès', 'success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initQRScanner();
+  initTransferScanner();
+  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  if (isDarkMode) {
+    document.body.classList.add('dark-mode');
+  }
+  const dataInput = document.getElementById('dataInput');
+  dataInput.addEventListener('input', () => {
+    if (processingTimeout) {
+      clearTimeout(processingTimeout);
+    }
+    processingTimeout = setTimeout(() => {
+      processData();
+    }, 3000);
+  });
+  const transferInput = document.getElementById('transferAmount');
+  transferInput.addEventListener('input', () => {
+    if (processingTimeout) {
+      clearTimeout(processingTimeout);
+    }
+    processingTimeout = setTimeout(() => {
+      createTransferQR();
+    }, 3000);
+  });
+  const euroInput = document.getElementById('euroInput');
+  let euroUpdateTimeout;
+  euroInput.addEventListener('input', () => {
+    if (euroUpdateTimeout) {
+      clearTimeout(euroUpdateTimeout);
+    }
+    euroUpdateTimeout = setTimeout(() => {
+      const euroAmount = parseFloat(euroInput.value) || 0;
+      document.getElementById('euroAmount').textContent = `${euroAmount.toFixed(8)} €`;
+      updatePALValues(euroAmount);
+    }, 3000);
+  });
+  fetchBTCPrice();
+  btcUpdateInterval = setInterval(fetchBTCPrice, 60000); // Update every minute
+});
+
+function updatePALValues(euroAmount) {
+  const palValue = totalValue / 0.00000694444444444444;
+  document.getElementById('palAmount').textContent = `${palValue.toFixed(8)} PAL`;
+  const palEuroValue = palValue * euroAmount;
+  document.getElementById('palEuroValue').textContent = `${palEuroValue.toFixed(8)} €`;
+  
+  // Add BTC calculation
+  if (btcPrice > 0) {
+    const btcValue = palEuroValue / btcPrice;
+    document.getElementById('btcValue').textContent = `${btcValue.toFixed(8)} BTC`;
+    document.getElementById('floatingBtc').textContent = `BTC: ${btcValue.toFixed(8)}`;
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  localStorage.setItem('darkMode', isDarkMode);
+  updateTransactionGraph();
+  logMessage(`Mode ${isDarkMode ? 'nuit' : 'jour'} activé`, 'success');
+}
+
+function processData() {
+  try {
+    const inputData = document.getElementById('dataInput').value.trim();
+    if (!inputData) {
+      throw new Error('Aucune donnée saisie');
+    }
+    const decodedData = atob(inputData);
+    const jsonData = JSON.parse(decodedData);
+    if (!jsonData.v || !jsonData.h || !jsonData.t) {
+      throw new Error('Format de données invalide');
+    }
+    const value = parseFloat(jsonData.v);
+    if (isNaN(value)) {
+      throw new Error('Valeur numérique invalide');
+    }
+    const isDuplicate = transactions.some(t => t.h === jsonData.h);
+    if (isDuplicate) {
+      throw new Error('Transaction déjà enregistrée (doublon détecté)');
+    }
+    totalValue += value;
+    document.getElementById('display').innerHTML = `
+      <pre>Données décodées:
+Valeur: ${value}
+Hash: ${jsonData.h}
+Timestamp: ${new Date(jsonData.t).toLocaleString()}</pre>
+    `;
+    document.getElementById('totalAmount').textContent = `Total: ${totalValue.toFixed(8)}`;
+    const palValue = totalValue / 0.00000694444444444444;
+    document.getElementById('palAmount').textContent = `${palValue.toFixed(8)} PAL`;
+    const euroAmount = parseFloat(document.getElementById('euroInput').value) || 0;
+    document.getElementById('euroAmount').textContent = `${euroAmount.toFixed(8)} €`;
+    updatePALValues(euroAmount);
+    transactions.push(jsonData);
+    updateTransactionGraph();
+    logMessage(`Transaction traitée avec succès - Hash: ${jsonData.h.substring(0, 8)}...`, 'success');
+    document.getElementById('dataInput').value = '';
+    if (btcPrice > 0) {
+      const euroAmount = parseFloat(document.getElementById('euroInput').value) || 0;
+      const palValue = totalValue / 0.00000694444444444444;
+      const palEuroValue = palValue * euroAmount;
+      const btcValue = palEuroValue / btcPrice;
+      document.getElementById('btcValue').textContent = `${btcValue.toFixed(8)} BTC`;
+      document.getElementById('floatingBtc').textContent = `BTC: ${btcValue.toFixed(8)}`;
+    }
+  } catch (error) {
+    logMessage(`Erreur: ${error.message}`, 'error');
+  }
+}
+
+function clearDisplay() {
+  document.getElementById('display').innerHTML = 'Entrée de données en attente...';
+  document.getElementById('dataInput').value = '';
+  document.getElementById('totalAmount').textContent = 'Total: 0.00000000';
+  document.getElementById('palAmount').textContent = '0.00000000 PAL';
+  document.getElementById('palEuroValue').textContent = '0.00000000 €';
+  document.getElementById('euroAmount').textContent = '0.00000000 €';
+  document.getElementById('euroInput').value = '';
+  if (euroUpdateTimeout) {
+    clearTimeout(euroUpdateTimeout);
+  }
+  document.getElementById('btcValue').textContent = '0.00000000 BTC';
+  document.getElementById('floatingBtc').textContent = 'BTC: 0.00000000';
+  totalValue = 0;
+  transactions = [];
+  updateTransactionGraph();
+  logMessage('Affichage et données effacés', 'success');
+}
+
+function exportData() {
+  const exportData = {
+    transactions: transactions,
+    exportDate: new Date().toISOString(),
+    totalTransactions: transactions.length,
+    totalValue: totalValue
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `caisse_export_${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  logMessage('Données exportées avec succès', 'success');
+}
+
+function logMessage(message, type) {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = type;
+  entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+  log.insertBefore(entry, log.firstChild);
+}
+
+function toggleScanner() {
+  const toggleButton = document.getElementById('scannerToggle');
+  if (qrScanner && qrScanner.isScanning) {
+    qrScanner.stop().then(() => {
+      toggleButton.textContent = 'Ouvrir Scanner';
+      logMessage('Scanner fermé', 'success');
+    }).catch(err => {
+      logMessage(`Erreur fermeture scanner: ${err}`, 'error');
+    });
+  } else {
+    qrScanner.start({
+      facingMode: "environment"
+    }, {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    }, decodedText => {
+      try {
+        const jsonData = JSON.parse(atob(decodedText));
+        processMemoryData(jsonData);
+        qrScanner.stop();
+        toggleButton.textContent = 'Ouvrir Scanner';
+      } catch (error) {
+        logMessage(`Erreur de lecture QR: ${error.message}`, 'error');
+      }
+    }, error => {}).then(() => {
+      toggleButton.textContent = 'Fermer Scanner';
+      logMessage('Scanner ouvert', 'success');
+    }).catch(err => {
+      logMessage(`Erreur ouverture scanner: ${err}`, 'error');
+    });
+  }
+}
+
+function updateMemoryQRCode() {}
+
+function initTransferScanner() {
+  transferScanner = new Html5Qrcode("transfer-scanner");
+}
+
+function createTransferQR() {
+  const amount = parseFloat(document.getElementById('transferAmount').value);
+  if (isNaN(amount) || amount <= 0 || amount > totalValue) {
+    logMessage('Montant invalide ou insuffisant', 'error');
+    return;
+  }
+  const transferData = {
+    v: amount,
+    h: crypto.randomUUID(),
+    t: Date.now(),
+    type: 'transfer',
+    status: 'pending'
+  };
+  const qrDataString = btoa(JSON.stringify(transferData));
+  const qrDataUrl = generateQRCode(qrDataString);
+  document.getElementById('transfer-qr-display').innerHTML = `<img src="${qrDataUrl}" alt="Transfer QR Code">`;
+  transactions.push(transferData);
+  totalValue -= amount;
+  updateDisplay();
+  updateTransactionGraph();
+  logMessage(`QR code de transfert créé pour ${amount.toFixed(8)}`, 'success');
+  document.getElementById('transferAmount').value = '';
+}
+
+function toggleTransferScanner() {
+  const toggleButton = document.getElementById('transferScannerToggle');
+  if (transferScanner && transferScanner.isScanning) {
+    transferScanner.stop().then(() => {
+      toggleButton.textContent = 'Scanner transfert';
+      logMessage('Scanner de transfert fermé', 'success');
+    }).catch(err => {
+      logMessage(`Erreur fermeture scanner: ${err}`, 'error');
+    });
+  } else {
+    transferScanner.start({
+      facingMode: "environment"
+    }, {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    }, decodedText => {
+      try {
+        const transferData = JSON.parse(atob(decodedText));
+        if (transferData.type === 'transfer' && transferData.status === 'pending') {
+          const existingTransfer = transactions.find(t => t.h === transferData.h);
+          if (existingTransfer) {
+            logMessage('Ce transfert a déjà été traité', 'error');
+            return;
+          }
+          const redeemedTransfer = {
+            ...transferData,
+            status: 'redeemed',
+            redeemTime: Date.now()
+          };
+          totalValue += transferData.v;
+          transactions.push(redeemedTransfer);
+          updateDisplay();
+          updateTransactionGraph();
+          transferScanner.stop();
+          toggleButton.textContent = 'Scanner transfert';
+          logMessage(`Transfert reçu: ${transferData.v.toFixed(8)}`, 'success');
+        } else if (transferData.status === 'redeemed') {
+          logMessage('Ce transfert a déjà été utilisé', 'error');
+        }
+      } catch (error) {
+        logMessage(`Erreur de lecture du QR de transfert: ${error.message}`, 'error');
+      }
+    }, error => {}).then(() => {
+      toggleButton.textContent = 'Fermer Scanner';
+      logMessage('Scanner de transfert ouvert', 'success');
+    }).catch(err => {
+      logMessage(`Erreur ouverture scanner: ${err}`, 'error');
+    });
+  }
+}
+
+function updateTransactionGraph() {
+  const ctx = document.getElementById('transactionGraph').getContext('2d');
+  let runningTotal = 0;
+  const cumulativeData = transactions.map(t => {
+    if (t.type === 'transfer') {
+      runningTotal -= t.v;
+    } else {
+      runningTotal += t.v;
+    }
+    return runningTotal;
+  });
+  const labels = transactions.map(t => new Date(t.t).toLocaleTimeString());
+  if (transactionChart) {
+    transactionChart.destroy();
+  }
+  transactionChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Solde Total',
+        data: cumulativeData,
+        borderColor: '#2196f3',
+        backgroundColor: 'rgba(33, 150, 243, 0.2)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          },
+          ticks: {
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#666'
+          }
+        },
+        x: {
+          grid: {
+            color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          },
+          ticks: {
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#666',
+            maxRotation: 45,
+            minRotation: 45
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#666'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return `Solde: ${context.parsed.y.toFixed(8)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+async function fetchBTCPrice() {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur');
+    const data = await response.json();
+    btcPrice = data.bitcoin.eur;
+    updatePALValues(parseFloat(document.getElementById('euroInput').value) || 0);
+    logMessage(`Cours BTC mis à jour: ${btcPrice}€`, 'success');
+  } catch (error) {
+    logMessage(`Erreur lors de la récupération du cours BTC: ${error}`, 'error');
+  }
+}
+
+logMessage('Système initialisé et prêt', 'success');
+</script>
+</body></html>
