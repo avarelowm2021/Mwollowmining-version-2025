@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MWAL – Wallet (profils + mot de passe + import legacy)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl/nacl-fast.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+  :root{--bg:#0b0f14;--card:#0f1723;--ink:#e8fff1;--mut:#9cc;--acc:#58f2b0;--warn:#ffb86c;--danger:#ff6b6b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1120px;margin:24px auto;padding:0 16px}
+  h1{margin:0 0 12px;color:var(--acc)}
+  .grid{display:grid;gap:14px}
+  @media(min-width:1000px){.grid{grid-template-columns:1.2fr .8fr}}
+  .card{background:var(--card);border:1px solid #203043;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 8px 26px rgba(0,0,0,.25)}
+  label{font-size:13px;color:#a8c7cf}
+  input,textarea,button,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #243446;background:#0e1521;color:var(--ink)}
+  button{cursor:pointer;background:linear-gradient(180deg,#5ef0bd,#27ce93);border:none;color:#063;font-weight:800}
+  button.ghost{background:#0e1521;border:1px dashed #2e5248;color:#9ff}
+  button.warn{background:linear-gradient(180deg,var(--warn),#f0a34d);color:#3a2500}
+  button.danger{background:linear-gradient(180deg,var(--danger),#ff4d4d);color:#2a0000}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .big{font-size:26px;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{border-bottom:1px solid #24364a;padding:8px;text-align:left}
+  th{color:#cfe}
+  .muted{color:var(--mut);font-size:13px}
+  .ok{color:#7ff7aa} .bad{color:#ff9988} .unk{color:#9cc}
+  #qrcode canvas,#rqrc canvas{margin-top:8px}
+
+  /* Écrans modaux (verrouillage / migration / changement de mot de passe) */
+  .lock{position:fixed;inset:0;background:rgba(3,8,12,.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter: blur(6px)}
+  .lock .panel{width:min(640px,92vw);background:var(--card);border:1px solid #214;border-radius:18px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+  .lock h2{margin:0 0 12px;color:var(--acc)}
+  .hint{font-size:13px;color:#9cc;margin-top:6px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MWAL – Wallet (profils)</h1>
+
+  <!-- Connexion / Réseau / Profil -->
+  <div class="card">
+    <div class="row">
+      <input id="peers" class="mono" value="https://gun-encaissement.onrender.com/gun, https://gun-encaissement777.onrender.com/gun">
+      <button id="btnConnect" class="ghost">Connexion / Reconnexion</button>
+      <button id="btnLock" class="ghost" style="width:auto">🔒 Verrouiller</button>
+    </div>
+    <div class="row" style="margin-top:6px;justify-content:space-between">
+      <div id="net" class="muted">Hors ligne</div>
+      <div class="muted">Profil actif : <b id="profileName">—</b></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Col A: identité, recevoir, envoyer, profil -->
+    <div>
+      <!-- Identité -->
+      <div class="card">
+        <h3 style="margin-top:0">Mon identité</h3>
+        <div class="row">
+          <button id="btnNew">Générer une clé</button>
+          <button id="btnExport" class="ghost">Exporter la clé (JSON)</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="pub" class="mono" placeholder="pub(Base64)" readonly>
+          <input id="sec" class="mono" type="password" placeholder="sec(Base64)" readonly>
+        </div>
+        <details style="margin-top:8px">
+          <summary>Importer une clé existante</summary>
+          <div class="row" style="margin-top:8px">
+            <textarea id="imp" rows="3" class="mono" placeholder='{"secBase64":"..."}  ou  {"pubBase64":"...","secBase64":"..."}'></textarea>
+            <button id="btnImport" class="ghost">Importer</button>
+          </div>
+          <div class="muted">Accepte une <b>secretKey 64o</b> (ed25519) ou un <b>seed 32o</b> (fromSeed). La pub est recalculée.</div>
+        </details>
+
+        <div class="row" style="margin-top:10px;align-items:flex-start">
+          <div style="flex:1;min-width:260px">
+            <div class="muted">Mon adresse</div>
+            <div class="row">
+              <input id="addr" class="mono" readonly>
+              <button id="btnCopy" class="ghost" style="width:auto">📋 Copier</button>
+            </div>
+            <div class="muted" style="margin-top:6px">Nonce réseau : <span id="nonce" class="mono">0</span></div>
+          </div>
+          <div id="qrcode"></div>
+          <div style="flex:1">
+            <div class="muted">Solde</div>
+            <div id="balance" class="big">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recevoir -->
+      <div class="card">
+        <h3 style="margin-top:0">Recevoir des MWAL</h3>
+        <div class="row">
+          <input id="reqAmount" type="number" min="1" step="1" placeholder="Montant demandé (ex: 25)">
+          <button id="btnMakeReq">Générer la demande (QR)</button>
+        </div>
+        <div class="muted" style="margin-top:6px">Format: <code>mwalpay:&lt;address&gt;?amount=&lt;n&gt;</code></div>
+        <div id="rqrlink" class="mono" style="margin-top:6px;word-break:break-all"></div>
+        <div id="rqrc"></div>
+      </div>
+
+      <!-- Envoyer -->
+      <div class="card">
+        <h3 style="margin-top:0">Envoyer des MWAL (TRANSFER signé)</h3>
+        <div class="row">
+          <input id="to" class="mono" placeholder="destinataire (mwal1-...)">
+          <input id="amount" type="number" min="1" step="1" placeholder="montant (ex: 10)">
+          <button id="btnSend">Envoyer</button>
+        </div>
+        <div id="sendStatus" class="muted" style="margin-top:8px"></div>
+        <div class="muted" style="margin-top:4px">La TX inclut <code>from_pub_b64</code>, <code>nonce</code>, <code>sig_b64</code> et va dans <code>mwal_ledger_v1</code>.</div>
+      </div>
+
+      <!-- Profil (sécurité) -->
+      <div class="card">
+        <h3 style="margin-top:0">Profil & sécurité</h3>
+        <div class="row">
+          <button id="btnChangePwd" class="warn">Changer le mot de passe</button>
+          <button id="btnDeleteProfile" class="danger">Supprimer ce profil</button>
+        </div>
+        <div class="muted" style="margin-top:6px">Chaque profil possède sa clé et son coffre chiffré localement (PBKDF2 200k itérations + AES‑GCM 256 bits).</div>
+      </div>
+
+      <!-- Autorités -->
+      <div class="card">
+        <h3 style="margin-top:0">Clés d’autorité (pour vérifier MINT_GENESIS)</h3>
+        <textarea id="authList" rows="4" class="mono" placeholder="Collez ici les pubBase64 autorité, une par ligne..."></textarea>
+        <div class="muted" style="margin-top:6px">Si vide : les MINT_GENESIS seront marqués comme “INCONNU”.</div>
+      </div>
+    </div>
+
+    <!-- Col B: historique live -->
+    <div>
+      <div class="card">
+        <h3 style="margin-top:0">Historique (live, signé)</h3>
+        <div style="max-height:640px;overflow:auto">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>De</th><th>→</th><th>Montant</th><th>Sig</th><th>ID</th></tr></thead>
+            <tbody id="tblTx"></tbody>
+          </table>
+        </div>
+        <div class="muted">Sig = <span class="ok">OK</span> / <span class="bad">INV</span> / <span class="unk">?</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlays: Unlock / Create / Migrate legacy / Change password -->
+<div id="overlay" class="lock hide" aria-modal="true">
+  <div class="panel">
+    <!-- UNLOCK -->
+    <div id="paneUnlock" class="hide">
+      <h2>Déverrouiller un profil</h2>
+      <label>Profil</label>
+      <select id="unlockProfile"></select>
+      <div class="row" style="margin-top:8px">
+        <input id="unlockPwd" type="password" placeholder="Mot de passe" autocomplete="current-password">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnUnlock">Déverrouiller</button>
+        <button id="goCreate" class="ghost" style="width:auto">+ Créer un nouveau profil</button>
+      </div>
+      <div id="unlockMsg" class="hint"></div>
+    </div>
+
+    <!-- CREATE PROFILE -->
+    <div id="paneCreate" class="hide">
+      <h2>Créer un profil</h2>
+      <div class="row">
+        <input id="createName" placeholder="Nom du profil (ex: Laurent)">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="createPwd1" type="password" placeholder="Mot de passe" autocomplete="new-password">
+        <input id="createPwd2" type="password" placeholder="Confirmer le mot de passe" autocomplete="new-password">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnCreate">Créer et entrer</button>
+        <button id="goUnlock" class="ghost" style="width:auto">← J'ai déjà un profil</button>
+      </div>
+      <div id="createMsg" class="hint">Votre clé sera générée et chiffrée en local.</div>
+    </div>
+
+    <!-- MIGRATE LEGACY VAULT -->
+    <div id="paneMigrate" class="hide">
+      <h2>Migrer l'ancien coffre</h2>
+      <div class="hint">Un coffre <code>mwal_vault</code> (ancienne version) a été détecté. Entrez son mot de passe pour le migrer vers un profil.</div>
+      <div class="row" style="margin-top:8px">
+        <input id="migratePwd" type="password" placeholder="Mot de passe de l'ancien coffre">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="migrateName" placeholder="Nom du nouveau profil (ex: Legacy Laurent)">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnMigrate">Migrer et entrer</button>
+        <button id="goCreateFromM" class="ghost" style="width:auto">Ou créer un nouveau profil</button>
+      </div>
+      <div id="migrateMsg" class="hint"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== ÉTAT GLOBAL ====== */
+let gun=null, my={pub:null, sec:null, addr:''}, netNonce=0;
+const txIndex = new Map();   // id -> tx normalisé (+ validation)
+let initialLoaded=false;
+// Rafraîchissement rapide (1s)
+let fastTimer=null, fastLock=false;
+const FAST_PERIOD_MS=1000;
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+// Sécurité (chiffrement local, multi-profils)
+let aesKey=null;        // CryptoKey dérivé du mot de passe
+let kdfSalt=null;       // Uint8Array (stockée en base64 dans le coffre)
+let currentProfileId=null;
+
+const PROFILES_KEY='mwal_profiles_v1';            // liste [{id,name,createdAt}]
+const LEGACY_VAULT_KEY='mwal_vault';              // ancien coffre (monoprofil)
+const OLD_KEY='mwal_user_key';                    // ancien stockage en clair (à migrer si présent)
+
+/* ====== HELPERS GÉNÉRAUX ====== */
+function b64(u){let s='';u.forEach(b=>s+=String.fromCharCode(b));return btoa(s);} 
+function b64toBytes(s){const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+function toNum(x){const n=Number(x);return Number.isFinite(n)?n:0;}
+function setText(id,val){document.getElementById(id).textContent=val;}
+function getVal(id){return document.getElementById(id).value.trim();}
+function base64url(u8){return btoa(String.fromCharCode(...u8)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function sha256(bytes){const buf=await crypto.subtle.digest('SHA-256', bytes);return new Uint8Array(buf);} 
+async function addressFromPub(pub){return sha256(pub).then(h=>`mwal1-${base64url(h).slice(0,36)}`);} 
+function renderQR(holderId, text, size=140){const h=document.getElementById(holderId);h.innerHTML='';const c=document.createElement('canvas');h.appendChild(c);QRCode.toCanvas(c,text,{width:size,margin:1},(e)=>{if(e)console.error(e);});}
+function randBytes(n){const u=new Uint8Array(n);crypto.getRandomValues(u);return u;}
+
+/* ====== PROFILS ====== */
+function loadProfiles(){ try{ const raw=localStorage.getItem(PROFILES_KEY); if(!raw) return []; const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }catch{return [];} }
+function saveProfiles(arr){ localStorage.setItem(PROFILES_KEY, JSON.stringify(arr)); }
+function profileById(id){ return loadProfiles().find(p=>p.id===id)||null; }
+function setCurrentProfile(id){ currentProfileId=id; const p=profileById(id); document.getElementById('profileName').textContent=p? p.name : '—'; sessionStorage.setItem('mwal_current_profile', id||''); }
+function slugifyName(name){ const base=(name||'profil').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'profil'; const nonce=Math.random().toString(36).slice(2,6); return `${base}-${nonce}`; }
+function vaultKeyFor(pid){ return `mwal_vault__${pid}`; }
+
+function refreshUnlockProfiles(){ const sel=document.getElementById('unlockProfile'); const list=loadProfiles(); sel.innerHTML=''; list.forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o); }); if(list.length>0){ sel.value=list[0].id; } }
+
+/* ====== KDF + AES-GCM ====== */
+async function deriveKey(password, salt){
+  const base=await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
+    base,
+    {name:'AES-GCM', length:256},
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function vaultEncryptForProfile(pid, obj){
+  if(!aesKey||!kdfSalt) throw new Error('Coffre non initialisé.');
+  const iv=randBytes(12);
+  const data=enc.encode(JSON.stringify(obj));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, data);
+  const payload={version:1, salt:b64(kdfSalt), iv:b64(new Uint8Array(iv)), ct:b64(new Uint8Array(ct)), createdAt:Date.now()};
+  localStorage.setItem(vaultKeyFor(pid), JSON.stringify(payload));
+  // nettoyer les très anciens stockages
+  localStorage.removeItem(OLD_KEY);
+}
+
+async function vaultDecryptForProfile(pid, password){
+  const raw=localStorage.getItem(vaultKeyFor(pid));
+  if(!raw) throw new Error('Aucun coffre pour ce profil.');
+  const v=JSON.parse(raw);
+  kdfSalt=b64toBytes(v.salt);
+  const key=await deriveKey(password, kdfSalt);
+  try{
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv:b64toBytes(v.iv)}, key, b64toBytes(v.ct));
+    aesKey=key; // mémoriser la nouvelle clé AES
+    const json=JSON.parse(dec.decode(new Uint8Array(pt)));
+    return json; // {pubBase64, secBase64}
+  }catch(e){ throw new Error('Mot de passe incorrect.'); }
+}
+
+async function initNewVaultWithPassword(password){
+  kdfSalt=randBytes(16);
+  aesKey=await deriveKey(password, kdfSalt);
+}
+
+// Déchiffre l'ancien coffre legacy (monoprofil)
+async function vaultDecryptLegacy(password){
+  const raw=localStorage.getItem(LEGACY_VAULT_KEY);
+  if(!raw) throw new Error('Pas de coffre legacy.');
+  const v=JSON.parse(raw);
+  const salt=b64toBytes(v.salt); const iv=b64toBytes(v.iv); const ct=b64toBytes(v.ct);
+  const key=await deriveKey(password, salt);
+  try{
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
+    const json=JSON.parse(dec.decode(new Uint8Array(pt)));
+    return {json, legacySalt:salt};
+  }catch(e){ throw new Error('Mot de passe legacy incorrect.'); }
+}
+
+/* ====== RAFRAÎCHISSEMENT RAPIDE (1s) ====== */
+function updateNetStatus(){
+  const el=document.getElementById('net');
+  if(!gun){ el.textContent='Hors ligne'; return; }
+  const peers=(gun._&&gun._.opt&&gun._.opt.peers)||{};
+  let up=0,total=0; Object.values(peers).forEach(p=>{ total++; try{ if(p.wire&&p.wire.readyState===1) up++; }catch(e){} });
+  const list=Object.keys(peers).join(' | ');
+  el.textContent=`Pairs ${up}/${total} — ${list}`;
+}
+
+async function fastRefreshCycle(){
+  if(fastLock) return; fastLock=true;
+  try{
+    updateNetStatus();
+    if(!gun||!my.addr) return;
+    const LED='mwal_ledger_v1';
+    gun.get(LED).map().once(async (tx,key)=>{
+      if(!tx||!tx.kind||!tx.t) return;
+      const k=String(tx.kind), to=tx.to||'', from=tx.from||'';
+      if(!(to===my.addr || from===my.addr || (k==='MINT_GENESIS' && to===my.addr))) return;
+      const id=idForLedger(tx,key); if(txIndex.has(id)) return;
+      const norm={kind:k, from, to, amount:toNum(tx.amount)||0, t:toNum(tx.t)||0, id,
+                  sig_b64:tx.sig_b64, from_pub_b64:tx.from_pub_b64,
+                  authority_sig_b64:tx.authority_sig_b64, authority_pub_b64:tx.authority_pub_b64,
+                  nonce:toNum(tx.nonce)||0};
+      txIndex.set(id, norm); validation.set(id, await verifyTx(id, norm));
+      renderAll();
+    });
+    // rafraîchir ponctuellement le nonce
+    if(my.addr){ gun.get('mwal_nonces').get(my.addr).once(v=>{ if(v!=null){ netNonce=Math.max(toNum(v), netNonce); setText('nonce', netNonce); } }); }
+  }finally{ fastLock=false; }
+}
+function startFastRefresh(){ stopFastRefresh(); fastTimer=setInterval(fastRefreshCycle, FAST_PERIOD_MS); }
+function stopFastRefresh(){ if(fastTimer){ clearInterval(fastTimer); fastTimer=null; } }
+
+/* ====== CONNEXION GUN ====== */
+function connect(){
+  try{ if(gun && gun.off) gun.off(); }catch(e){}
+  const peers=getVal('peers').split(',').map(s=>s.trim()).filter(Boolean);
+  gun = Gun(peers);
+  document.getElementById('net').textContent = "Connecté : " + peers.join(" | ");
+  updateNetStatus();
+  startFastRefresh();
+  if(my.addr) watchNonce();
+  loadInitialThenLive();
+}
+
+/* ====== IMPORT/EXPORT/CLÉS ====== */
+async function persistCurrentKey(){
+  if(!my.pub||!my.sec||!currentProfileId) return;
+  await vaultEncryptForProfile(currentProfileId, {pubBase64:b64(my.pub), secBase64:b64(my.sec)});
+}
+
+function setKey(pub, sec){
+  my.pub=pub; my.sec=sec;
+  const pubB64=b64(pub), secB64=b64(sec);
+  document.getElementById('pub').value=pubB64;
+  document.getElementById('sec').value=secB64;
+  addressFromPub(pub).then(async addr=>{
+    my.addr=addr; document.getElementById('addr').value=addr;
+    renderQR('qrcode', addr, 140);
+    await persistCurrentKey().catch(console.error);
+    watchNonce();
+    if(gun) loadInitialThenLive();
+  });
+}
+function newKey(){ const kp=nacl.sign.keyPair(); setKey(kp.publicKey, kp.secretKey); }
+
+// Import robuste
+function importKeyObject(o){
+  if(!o.secBase64) throw new Error("secBase64 manquant");
+  const sec = b64toBytes(o.secBase64);
+  let kp=null;
+  if(sec.length===64){
+    try{ kp = nacl.sign.keyPair.fromSecretKey(sec); }catch(e){ throw new Error("secretKey invalide (64o requis)"); }
+  }else if(sec.length===32){
+    try{ kp = nacl.sign.keyPair.fromSeed(sec); }catch(e){ throw new Error("seed invalide (32o requis)"); }
+  }else{ throw new Error("secBase64 doit être 32o (seed) ou 64o (secretKey)"); }
+  if(o.pubBase64){
+    const importedPub = b64toBytes(o.pubBase64);
+    if(importedPub.length!==kp.publicKey.length || !importedPub.every((b,i)=>b===kp.publicKey[i])){
+      throw new Error("pubBase64 ne correspond pas à la secretKey");
+    }
+  }
+  setKey(kp.publicKey, kp.secretKey); return true;
+}
+
+/* ====== NONCE ====== */
+function watchNonce(){
+  if(!my.addr) return;
+  gun.get("mwal_nonces").get(my.addr).on(v=>{
+    netNonce = Math.max(toNum(v), netNonce);
+    setText('nonce', netNonce);
+  });
+}
+
+/* ====== IDs ====== */
+function idForGenesis(rec){
+  const w=String(rec.wallet||''); const amt=toNum(rec.amount_mwal)||0; const t=toNum(rec.t)||0;
+  const sig=rec.authority_sig_b64||'';
+  return `GEN|${w}|${amt}|${t}|${sig}`;
+}
+function idForLedger(tx, key){
+  if(key) return key;
+  const k=String(tx.kind||''), from=tx.from||'', to=tx.to||'';
+  const amt=toNum(tx.amount)||0, n=toNum(tx.nonce)||0, t=toNum(tx.t)||0;
+  const sig=tx.sig_b64 || tx.authority_sig_b64 || '';
+  return `${k}|${from}|${to}|${amt}|${n}|${t}|${sig}`;
+}
+
+/* ====== VALIDATION SIG ====== */
+const validation = new Map();
+function getAuthoritySet(){ const lines = getVal('authList').split('\n').map(s=>s.trim()).filter(Boolean); return new Set(lines); }
+async function verifyTx(id, tx){
+  try{
+    if(tx.kind==='TRANSFER'){
+      if(!tx.sig_b64 || !tx.from_pub_b64) return {state:'?', note:'missing sig/pub'};
+      const pub = b64toBytes(tx.from_pub_b64);
+      const addr = await addressFromPub(pub);
+      if(addr !== tx.from) return {state:'INV', note:'pub!=from'};
+      const msg = `TRANSFER|${tx.from}|${tx.to}|${toNum(tx.amount)}|${toNum(tx.nonce)}|${toNum(tx.t)}`;
+      const ok = nacl.sign.detached.verify(enc.encode(msg), b64toBytes(tx.sig_b64), pub);
+      return ok ? {state:'OK'} : {state:'INV', note:'bad sig'};
+    }else if(tx.kind==='MINT_GENESIS'){
+      if(!tx.authority_sig_b64 || !tx.authority_pub_b64) return {state:'?', note:'missing auth sig/pub'};
+      const allowed = getAuthoritySet();
+      const pub = b64toBytes(tx.authority_pub_b64);
+      const msg = `MINT_GENESIS|${tx.to}|${toNum(tx.amount)}|${toNum(tx.t)}`;
+      const ok = nacl.sign.detached.verify(enc.encode(msg), b64toBytes(tx.authority_sig_b64), pub);
+      if(!ok) return {state:'INV', note:'bad auth sig'};
+      if(allowed.size===0) return {state:'?', note:'no authority list'};
+      return allowed.has(tx.authority_pub_b64) ? {state:'OK'} : {state:'?', note:'auth not in list'};
+    }
+    return {state:'?', note:'no rule'};
+  }catch(e){ return {state:'?', note:'verify error'}; }
+}
+
+/* ====== CHARGEMENT TX ====== */
+function loadInitialThenLive(){
+  if(!gun || !my.addr) return;
+  initialLoaded=false; txIndex.clear(); validation.clear(); renderAll();
+  const GEN="mwal_genesis_v1", LED="mwal_ledger_v1";
+  gun.get(GEN).map().once(async rec=>{
+    if(!rec||!rec.wallet) return; if(String(rec.wallet)!==my.addr) return;
+    const id = idForGenesis(rec);
+    const tx = {kind:rec.type||'GENESIS', from:'GENESIS', to:my.addr, amount:toNum(rec.amount_mwal)||0, t:rec.t||0, id};
+    txIndex.set(id, tx); validation.set(id, {state:'?', note:'genesis'}); renderAll();
+  });
+  gun.get(LED).map().once(async (tx,key)=>{
+    if(!tx||!tx.kind||!tx.t) return;
+    const k=String(tx.kind), to=tx.to||'', from=tx.from||'';
+    if(!(to===my.addr || from===my.addr || (k==='MINT_GENESIS' && to===my.addr))) return;
+    const id = idForLedger(tx, key);
+    const norm = {kind:k, from, to, amount:toNum(tx.amount)||0, t:toNum(tx.t)||0, id,
+                  sig_b64:tx.sig_b64, from_pub_b64:tx.from_pub_b64,
+                  authority_sig_b64:tx.authority_sig_b64, authority_pub_b64:tx.authority_pub_b64,
+                  nonce:toNum(tx.nonce)||0};
+    txIndex.set(id, norm); validation.set(id, await verifyTx(id, norm)); renderAll();
+  });
+  setTimeout(()=>{ initialLoaded=true; subscribeLive(LED); }, 900);
+}
+
+function subscribeLive(LED){
+  gun.get(LED).map().on(async (tx,key)=>{
+    if(!tx||!tx.kind||!tx.t) return;
+    const k=String(tx.kind), to=tx.to||'', from=tx.from||'';
+    if(!(to===my.addr || from===my.addr || (k==='MINT_GENESIS' && to===my.addr))) return;
+    const id = idForLedger(tx, key); if(txIndex.has(id)) return;
+    const norm = {kind:k, from, to, amount:toNum(tx.amount)||0, t:toNum(tx.t)||0, id,
+                  sig_b64:tx.sig_b64, from_pub_b64:tx.from_pub_b64,
+                  authority_sig_b64:tx.authority_sig_b64, authority_pub_b64:tx.authority_pub_b64,
+                  nonce:toNum(tx.nonce)||0};
+    txIndex.set(id, norm); validation.set(id, await verifyTx(id, norm)); renderAll();
+  });
+}
+
+/* ====== SOLDE + RENDU ====== */
+function computeBalance(){
+  let bal=0, me=my.addr||'';
+  for(const tx of txIndex.values()){
+    const k=tx.kind;
+    if(k==='GENESIS'||k==='MINT_GENESIS'||k==='MINT_V'||k==='MINT_P'){
+      if(tx.to===me) bal += toNum(tx.amount);
+    }else if(k==='TRANSFER'){
+      if(tx.to===me) bal += toNum(tx.amount);
+      if(tx.from===me) bal -= toNum(tx.amount);
+    }else if(k==='BURN_V'||k==='BURN_P'){
+      if(tx.from===me) bal -= toNum(tx.amount);
+    }
+  }
+  return bal;
+}
+function renderAll(){
+  setText('balance', computeBalance());
+  const rows = Array.from(txIndex.values()).sort((a,b)=>(b.t||0)-(a.t||0));
+  const tbody=document.getElementById('tblTx'); tbody.innerHTML='';
+  for(const r of rows){
+    const v = validation.get(r.id) || {state:'?',note:''};
+    const cls = v.state==='OK'?'ok':(v.state==='INV'?'bad':'unk');
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(r.t||0).toLocaleString()}</td>
+      <td>${r.kind}</td>
+      <td class="mono">${(r.from||'').slice(0,16)}${r.from?'…':''}</td>
+      <td class="mono">${(r.to||'').slice(0,16)}${r.to?'…':''}</td>
+      <td>${r.amount}</td>
+      <td class="${cls}">${v.state}</td>
+      <td class="mono">${(r.id||'').slice(0,18)}${r.id?'…':''}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ====== COPIE ADRESSE ====== */
+async function copyAddr(){
+  const input=document.getElementById('addr'); const val=input.value;
+  try{ await navigator.clipboard.writeText(val); alert('Adresse copiée ✅'); return; }
+  catch(e){ console.warn('clipboard API indisponible, fallback', e); }
+  const wasRO=input.readOnly; input.readOnly=false; input.focus(); input.select(); input.setSelectionRange(0,val.length);
+  const ok=document.execCommand('copy'); input.readOnly=wasRO;
+  alert(ok ? 'Adresse copiée ✅' : 'Impossible de copier — sélectionne et copie manuellement.');
+}
+
+/* ====== DEMANDER UN PAIEMENT ====== */
+function makeRequestQR(){
+  const n=Math.max(1,Math.floor(Number(getVal('reqAmount')||0)));
+  if(!my.addr) return alert("Adresse inconnue.");
+  const payload=`mwalpay:${my.addr}?amount=${n}`;
+  document.getElementById('rqrlink').textContent=payload;
+  renderQR('rqrc', payload, 180);
+}
+
+/* ====== ENVOI SIGNÉ ====== */
+async function send(){
+  const to=getVal('to'); const amt=Math.floor(Number(getVal('amount')||0));
+  const status=document.getElementById('sendStatus');
+  try{
+    if(!my.addr||!my.pub||!my.sec) throw new Error("Clé/Adresse inconnue.");
+    if(!to) throw new Error("Destinataire manquant.");
+    if(!amt||amt<=0) throw new Error("Montant invalide (>0).");
+    const currentBal = computeBalance(); if(amt>currentBal) throw new Error("Solde insuffisant.");
+    const nonce=Math.max(netNonce, toNum(document.getElementById('nonce').textContent)) + 1;
+    const t=Date.now();
+    const from_pub_b64=b64(my.pub);
+    const msg=`TRANSFER|${my.addr}|${to}|${amt}|${nonce}|${t}`;
+    const sig_b64=b64(nacl.sign.detached(enc.encode(msg), my.sec));
+    const tx={kind:"TRANSFER", from:my.addr, to, amount:amt, nonce, t, from_pub_b64, sig_b64};
+    const id = `TRANSFER|${my.addr}|${to}|${amt}|${nonce}|${t}|${sig_b64}`;
+    gun.get("mwal_ledger_v1").get(id).put(tx);
+    gun.get("mwal_nonces").get(my.addr).put(nonce);
+    status.textContent="✅ Transaction envoyée."; document.getElementById('amount').value='';
+  }catch(e){ status.textContent="❌ "+e.message; }
+}
+
+/* ====== VERROUILLAGE / PROFILS UI ====== */
+function showOverlay(which){
+  document.getElementById('overlay').classList.remove('hide');
+  ['paneUnlock','paneCreate','paneMigrate'].forEach(id=>document.getElementById(id).classList.add('hide'));
+  document.getElementById(which).classList.remove('hide');
+}
+function hideOverlay(){ document.getElementById('overlay').classList.add('hide'); }
+function hardResetMemory(){
+  my={pub:null, sec:null, addr:''}; netNonce=0; aesKey=null; kdfSalt=null;
+  setText('nonce', 0);
+  document.getElementById('pub').value='';
+  document.getElementById('sec').value='';
+  document.getElementById('addr').value='';
+  document.getElementById('qrcode').innerHTML='';
+  setText('balance', 0);
+  txIndex.clear(); validation.clear(); renderAll();
+}
+
+// Boutons overlay
+async function handleUnlock(){
+  const pid=document.getElementById('unlockProfile').value;
+  const pwd=getVal('unlockPwd'); const msg=document.getElementById('unlockMsg');
+  try{
+    const data=await vaultDecryptForProfile(pid, pwd);
+    currentProfileId=pid; setCurrentProfile(pid);
+    importKeyObject(data); // setKey() + persist
+    hideOverlay(); connect();
+  }catch(e){ msg.textContent=e.message; }
+}
+
+async function handleCreate(){
+  const name=getVal('createName')||'Profil';
+  const p1=getVal('createPwd1'), p2=getVal('createPwd2');
+  const msg=document.getElementById('createMsg');
+  if(!p1 || p1.length<6){ msg.textContent='Choisissez un mot de passe (≥ 6 caractères).'; return; }
+  if(p1!==p2){ msg.textContent='Les mots de passe ne correspondent pas.'; return; }
+  try{
+    const id=slugifyName(name);
+    await initNewVaultWithPassword(p1);
+    // nouvelle clé pour ce profil
+    const kp=nacl.sign.keyPair();
+    const list=loadProfiles(); list.push({id, name, createdAt:Date.now()}); saveProfiles(list);
+    currentProfileId=id; setCurrentProfile(id);
+    setKey(kp.publicKey, kp.secretKey); // persistCurrentKey() est appelé à l'intérieur
+    hideOverlay(); connect();
+  }catch(e){ msg.textContent='Erreur: '+e.message; }
+}
+
+async function handleMigrate(){
+  const pwd=getVal('migratePwd'); const name=getVal('migrateName')||'Profil migré';
+  const msg=document.getElementById('migrateMsg');
+  try{
+    const {json}=await vaultDecryptLegacy(pwd); // {pubBase64,secBase64}
+    const id=slugifyName(name);
+    // réutiliser le même mot de passe pour le nouveau profil ? On redemande rien: on garde celui entré.
+    await initNewVaultWithPassword(pwd);
+    const list=loadProfiles(); list.push({id, name, createdAt:Date.now()}); saveProfiles(list);
+    currentProfileId=id; setCurrentProfile(id);
+    importKeyObject(json); // setKey + persist
+    // supprimer l'ancien coffre
+    localStorage.removeItem(LEGACY_VAULT_KEY);
+    hideOverlay(); connect();
+  }catch(e){ msg.textContent=e.message; }
+}
+
+// Changer le mot de passe (ré-derive + ré-chiffre le coffre courant)
+async function changePasswordFlow(){
+  if(!currentProfileId){ alert('Aucun profil actif.'); return; }
+  const oldPwd = prompt('Mot de passe actuel :'); if(!oldPwd) return;
+  // vérifier
+  try{ await vaultDecryptForProfile(currentProfileId, oldPwd); }catch(e){ alert('Mot de passe actuel incorrect.'); return; }
+  const newPwd1 = prompt('Nouveau mot de passe : (≥ 6 caractères)'); if(!newPwd1 || newPwd1.length<6){ alert('Mot de passe trop court.'); return; }
+  const newPwd2 = prompt('Confirmez le nouveau mot de passe :'); if(newPwd1!==newPwd2){ alert('Les mots de passe ne correspondent pas.'); return; }
+  try{
+    // ré-initialiser la clé AES avec nouveau mot de passe & nouveau sel
+    await initNewVaultWithPassword(newPwd1);
+    // re-enregistrer la clé courante dans le coffre
+    await persistCurrentKey();
+    alert('Mot de passe changé ✅');
+  }catch(e){ alert('Erreur: '+e.message); }
+}
+
+// Supprimer le profil courant
+function deleteCurrentProfile(){
+  if(!currentProfileId){ alert('Aucun profil actif.'); return; }
+  const p=profileById(currentProfileId); const label=p? p.name : currentProfileId;
+  if(!confirm(`Supprimer le profil "${label}" ? Cette action effacera sa clé chiffrée sur CE navigateur (irréversible).`)) return;
+  localStorage.removeItem(vaultKeyFor(currentProfileId));
+  const list=loadProfiles().filter(x=>x.id!==currentProfileId); saveProfiles(list);
+  stopFastRefresh(); hardResetMemory(); setCurrentProfile(null);
+  // s'il reste des profils → afficher déverrouillage ; sinon → création
+  if(list.length>0){ refreshUnlockProfiles(); showOverlay('paneUnlock'); }
+  else { showOverlay('paneCreate'); }
+}
+
+/* ====== UI bindings ====== */
+// Top-level
+document.getElementById('btnConnect').onclick=connect;
+
+// Identité
+document.getElementById('btnNew').onclick=newKey;
+
+document.getElementById('btnExport').onclick=()=>{
+  if(!my.pub||!my.sec) return alert("Pas de clé");
+  const data=JSON.stringify({pubBase64:b64(my.pub), secBase64:b64(my.sec)});
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=Object.assign(document.createElement('a'),{href:url,download:'mwal_user_key.json'});
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+};
+
+document.getElementById('btnImport').onclick=()=>{
+  try{ const obj=JSON.parse(document.getElementById('imp').value.trim()); importKeyObject(obj); alert("Clé importée (adresse recalculée)."); }
+  catch(e){ alert("Erreur import : "+e.message); }
+};
+
+document.getElementById('btnCopy').onclick=copyAddr;
+document.getElementById('btnSend').onclick=send;
+document.getElementById('btnMakeReq').onclick=makeRequestQR;
+
+// Profil & sécurité
+document.getElementById('btnLock').onclick = ()=>{ stopFastRefresh(); hardResetMemory(); showOverlay('paneUnlock'); };
+document.getElementById('btnChangePwd').onclick=changePasswordFlow;
+document.getElementById('btnDeleteProfile').onclick=deleteCurrentProfile;
+
+// Overlay buttons
+// Unlock
+if(document.getElementById('btnUnlock')) document.getElementById('btnUnlock').onclick=handleUnlock;
+if(document.getElementById('goCreate')) document.getElementById('goCreate').onclick=()=>showOverlay('paneCreate');
+// Create
+if(document.getElementById('btnCreate')) document.getElementById('btnCreate').onclick=handleCreate;
+if(document.getElementById('goUnlock')) document.getElementById('goUnlock').onclick=()=>{ refreshUnlockProfiles(); showOverlay('paneUnlock'); };
+// Migrate
+if(document.getElementById('btnMigrate')) document.getElementById('btnMigrate').onclick=handleMigrate;
+if(document.getElementById('goCreateFromM')) document.getElementById('goCreateFromM').onclick=()=>showOverlay('paneCreate');
+
+/* ====== BOOT ====== */
+(function boot(){
+  // Choisir l'écran initial
+  const profiles=loadProfiles();
+  const hasLegacy=!!localStorage.getItem(LEGACY_VAULT_KEY);
+  refreshUnlockProfiles();
+
+  // Afficher nom profil actif si repris de session
+  const last=sessionStorage.getItem('mwal_current_profile');
+  if(last && profileById(last)) setCurrentProfile(last);
+
+  if(profiles.length>0){ showOverlay('paneUnlock'); }
+  else if(hasLegacy){ showOverlay('paneMigrate'); }
+  else { showOverlay('paneCreate'); }
+})();
+</script>
+</body>
+</html>
