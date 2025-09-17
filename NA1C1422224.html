@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NA1C142 MWOLLOWM</title>
+  <style>
+    :root{--couleur-neon:#0f0;--couleur-neon-hover:#00ff00;}
+    *{box-sizing:border-box}
+    body{
+      font-family:Arial, sans-serif; background:#000; color:var(--couleur-neon);
+      margin:0; display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:20px; gap:14px;
+    }
+    h1{margin:0 0 8px;font-size:2rem;text-shadow:0 0 10px var(--couleur-neon),0 0 20px var(--couleur-neon)}
+    .row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+    textarea{
+      width:min(90vw,720px); height:120px; background:#000; color:var(--couleur-neon);
+      border:2px solid var(--couleur-neon); border-radius:8px; padding:10px; resize:vertical
+    }
+    button,select,input[type=range]{
+      background:var(--couleur-neon); color:#000; border:none; border-radius:8px; padding:10px 14px;
+      cursor:pointer; font-weight:600
+    }
+    button:hover,select:hover{background:var(--couleur-neon-hover); box-shadow:0 0 10px var(--couleur-neon),0 0 20px var(--couleur-neon)}
+    label{opacity:.9}
+    .controls{display:grid; gap:10px; grid-template-columns:1fr; width:min(90vw,740px)}
+    .controls .grid{display:grid; gap:8px; grid-template-columns:1fr 1fr}
+    .meters{display:flex; align-items:center; gap:10px}
+    #vuMetre{
+      width:140px; height:10px; border:2px solid var(--couleur-neon); border-radius:999px; overflow:hidden; opacity:.6
+    }
+    #vuFill{
+      height:100%; width:0%; background:var(--couleur-neon);
+      animation:none
+    }
+    #vuMetre.on #vuFill{ animation:pulse 0.9s ease-in-out infinite }
+    @keyframes pulse{0%{width:10%}50%{width:95%}100%{width:15%}}
+    #visage{
+      width:220px; height:220px; border:2px solid var(--couleur-neon); border-radius:50%;
+      background-image:url('visage-ferme.jpg'); background-size:cover; background-position:center;
+      box-shadow:0 0 20px var(--couleur-neon),0 0 40px var(--couleur-neon);
+      transition:background-image .2s ease-in-out
+    }
+    .parle{background-image:url('visage-ouvert.jpg') !important}
+    .hint{opacity:.7; font-size:.9rem}
+    .spacer{height:6px}
+  </style>
+</head>
+<body>
+  <h1>NA1C142 MWOLLOWM</h1>
+
+  <!-- SAISIE ORIGINALE -->
+  <textarea id="inputText" placeholder="Tape ton texte ici..."></textarea>
+
+  <!-- ACTIONS PRINCIPALES -->
+  <div class="row">
+    <button id="btnConvert">Convertir</button>
+    <button id="btnSpeakConverted">Lire converti</button>
+    <button id="btnSpeakOriginal">Lire original</button>
+    <button id="btnPause">Pause</button>
+    <button id="btnResume">Reprendre</button>
+    <button id="btnStop">Stop</button>
+    <button id="btnReset">Réinitialiser</button>
+  </div>
+
+  <!-- CONTROLES VOIX -->
+  <div class="controls">
+    <div class="grid">
+      <div>
+        <label for="voiceGender">Genre de voix</label><br/>
+        <select id="voiceGender">
+          <option value="all">Toutes</option>
+          <option value="male">Masculines</option>
+          <option value="female">Féminines</option>
+        </select>
+      </div>
+      <div>
+        <label for="voiceSelect">Choisir une voix</label><br/>
+        <select id="voiceSelect"></select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label for="rateRange">Vitesse : <span id="rateValue">1.0x</span></label><br/>
+        <input type="range" id="rateRange" min="0.5" max="2" step="0.1" value="1"/>
+      </div>
+      <div>
+        <label for="pitchRange">Pitch : <span id="pitchValue">1.0</span></label><br/>
+        <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1"/>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label for="volumeRange">Volume : <span id="volumeValue">1.0</span></label><br/>
+        <input type="range" id="volumeRange" min="0" max="1" step="0.1" value="1"/>
+      </div>
+      <div class="meters">
+        <div id="vuMetre"><div id="vuFill"></div></div>
+        <button id="btnPreview">Pré-écouter la voix</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEXTES CONVERTI / ORIGINAL -->
+  <div class="spacer"></div>
+  <label for="convertedArea">Texte converti (éditable)</label>
+  <textarea id="convertedArea" placeholder="Le texte converti apparaîtra ici..."></textarea>
+  <div class="row">
+    <button id="btnDecode">Retrouver l'original</button>
+    <button id="btnCopyConverted">Copier converti</button>
+  </div>
+
+  <label for="originalArea">Texte original retrouvé</label>
+  <textarea id="originalArea" placeholder="Le texte original reconstruit apparaîtra ici..." readonly></textarea>
+  <div class="row">
+    <button id="btnCopyOriginal">Copier original</button>
+  </div>
+
+  <!-- VISAGE + COULEUR + IMAGE -->
+  <div id="visage"></div>
+  <div class="row">
+    <input type="file" id="imageUpload" accept="image/*"/>
+    <select id="colorPicker">
+      <option value="#0f0">Vert (Matrix)</option>
+      <option value="#00f">Bleu</option>
+      <option value="#f00">Rouge</option>
+      <option value="#ff0">Jaune</option>
+      <option value="#f0f">Magenta</option>
+      <option value="#0ff">Cyan</option>
+      <option value="#fff">Blanc</option>
+    </select>
+  </div>
+  <div class="hint">Astuce : modifie directement “Texte converti” pour tester le décodage en temps réel.</div>
+
+  <script>
+    /* ====== ALPHABET ====== */
+    const alphabet = {
+      'A':'so','B':'bebe','C':'co','D':'tri','E':'es','F':'ange','G':'fard','H':'brivol',
+      'I':'infi','J':'sauv','K':'feu','L':'cieux','M':'sang','N':'an','O':'ben','P':'cube',
+      'Q':'hein','R':'coup','S':'pur','T':'souf','U':'lien','V':'div','W':'foch','X':'ind',
+      'Y':'choix','Z':'lev',' ':' ' // espace normal
+    };
+    const alphabetInverse = {};
+    for (const [lettre,code] of Object.entries(alphabet)) alphabetInverse[code]=lettre;
+
+    /* ====== ELEMENTS ====== */
+    const inputText = document.getElementById('inputText');
+    const convertedArea = document.getElementById('convertedArea');
+    const originalArea = document.getElementById('originalArea');
+
+    const btnConvert = document.getElementById('btnConvert');
+    const btnDecode = document.getElementById('btnDecode');
+    const btnCopyConverted = document.getElementById('btnCopyConverted');
+    const btnCopyOriginal = document.getElementById('btnCopyOriginal');
+
+    const btnSpeakConverted = document.getElementById('btnSpeakConverted');
+    const btnSpeakOriginal = document.getElementById('btnSpeakOriginal');
+    const btnPause = document.getElementById('btnPause');
+    const btnResume = document.getElementById('btnResume');
+    const btnStop = document.getElementById('btnStop');
+    const btnReset = document.getElementById('btnReset');
+
+    const voiceGender = document.getElementById('voiceGender');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const rateRange = document.getElementById('rateRange');
+    const pitchRange = document.getElementById('pitchRange');
+    const volumeRange = document.getElementById('volumeRange');
+    const rateValue = document.getElementById('rateValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const volumeValue = document.getElementById('volumeValue');
+    const btnPreview = document.getElementById('btnPreview');
+
+    const visage = document.getElementById('visage');
+    const colorPicker = document.getElementById('colorPicker');
+    const imageUpload = document.getElementById('imageUpload');
+
+    const vuMetre = document.getElementById('vuMetre');
+    const vuFill = document.getElementById('vuFill');
+
+    /* ====== ETAT ====== */
+    let texteConverti = "";
+    let selectedVoice = null;
+    let voicesFR = []; // {voice, index, gender}
+    let rate = 1, pitch = 1, volume = 1;
+
+    /* ====== OUTILS ====== */
+    const detectGender = (name) => {
+      const n = (name||"").toLowerCase();
+      if (n.includes("male")||n.includes("homme")||n.includes("paul")||n.includes("thomas")) return "male";
+      if (n.includes("female")||n.includes("fem")||n.includes("femme")||n.includes("julie")||n.includes("celine")) return "female";
+      return "unknown";
+    };
+
+    const buildVoiceList = () => {
+      const all = window.speechSynthesis.getVoices();
+      voicesFR = [];
+      all.forEach((v,i)=>{
+        if (v.lang && v.lang.toLowerCase().startsWith("fr")) {
+          voicesFR.push({voice:v, index:i, gender:detectGender(v.name)});
+        }
+      });
+      populateVoiceSelect();
+    };
+
+    const populateVoiceSelect = () => {
+      const filter = voiceGender.value; // all/male/female
+      voiceSelect.innerHTML = "";
+      const list = voicesFR.filter(v => filter==="all" ? true : v.gender===filter);
+      list.forEach(item=>{
+        const opt = document.createElement('option');
+        const tag = item.gender==="male"?" (Masculine)": item.gender==="female"?" (Féminine)":"";
+        opt.value = item.index;
+        opt.textContent = item.voice.name + tag;
+        voiceSelect.appendChild(opt);
+      });
+      if (list.length>0){
+        selectedVoice = window.speechSynthesis.getVoices()[list[0].index];
+      } else if (window.speechSynthesis.getVoices().length){
+        // fallback: n'importe quelle voix
+        selectedVoice = window.speechSynthesis.getVoices()[0];
+      }
+    };
+
+    /* ====== CONVERTIR / DECONVERTIR ====== */
+    const convertirTexte = () => {
+      const src = (inputText.value||"").toUpperCase();
+      let out = "";
+      for (const ch of src) out += (alphabet[ch] ?? ch);
+      texteConverti = out;
+      convertedArea.value = out;
+      retrouverOriginal(); // auto
+    };
+
+    const retrouverOriginal = () => {
+      const t = convertedArea.value || "";
+      let res = "", i=0;
+      // codes triés du plus long au plus court
+      const codes = Object.entries(alphabetInverse).sort((a,b)=>b[0].length-a[0].length);
+      while (i < t.length){
+        let ok=false;
+        for (const [mot,lettre] of codes){
+          if (t.startsWith(mot,i)){ res+=lettre; i+=mot.length; ok=true; break; }
+        }
+        if (!ok){ res+=t[i]; i++; }
+      }
+      originalArea.value = res;
+    };
+
+    /* ====== TTS ====== */
+    const speak = (text) => {
+      if (!('speechSynthesis' in window)) { alert("Synthèse vocale non supportée."); return; }
+      if (!text){ alert("Aucun texte à lire."); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'fr-FR';
+      u.rate = rate; u.pitch = pitch; u.volume = volume;
+      if (selectedVoice) u.voice = selectedVoice;
+      u.onstart = ()=>{ visage.classList.add('parle'); vuMetre.classList.add('on'); };
+      u.onend = ()=>{ visage.classList.remove('parle'); vuMetre.classList.remove('on'); };
+      u.onerror = ()=>{ visage.classList.remove('parle'); vuMetre.classList.remove('on'); };
+
+      window.speechSynthesis.cancel(); // stoppe toute lecture précédente
+      window.speechSynthesis.speak(u);
+    };
+
+    const pauseSpeak = () => { if (speechSynthesis.speaking && !speechSynthesis.paused) speechSynthesis.pause(); };
+    const resumeSpeak = () => { if (speechSynthesis.paused) speechSynthesis.resume(); };
+    const stopSpeak = () => { speechSynthesis.cancel(); visage.classList.remove('parle'); vuMetre.classList.remove('on'); };
+
+    /* ====== UI HANDLERS ====== */
+    btnConvert.onclick = convertirTexte;
+    btnDecode.onclick = retrouverOriginal;
+
+    convertedArea.addEventListener('input', retrouverOriginal);
+
+    btnSpeakConverted.onclick = ()=> speak(convertedArea.value);
+    btnSpeakOriginal.onclick = ()=> speak(originalArea.value);
+    btnPause.onclick = pauseSpeak;
+    btnResume.onclick = resumeSpeak;
+    btnStop.onclick = stopSpeak;
+
+    btnCopyConverted.onclick = ()=> navigator.clipboard.writeText(convertedArea.value||"");
+    btnCopyOriginal.onclick = ()=> navigator.clipboard.writeText(originalArea.value||"");
+
+    btnReset.onclick = ()=>{
+      inputText.value=""; convertedArea.value=""; originalArea.value="";
+      stopSpeak(); texteConverti="";
+      visage.style.backgroundImage = "url('visage-ferme.jpg')";
+      imageUpload.value="";
+    };
+
+    colorPicker.onchange = (e)=>{
+      const col = e.target.value; 
+      document.documentElement.style.setProperty('--couleur-neon', col);
+      document.documentElement.style.setProperty('--couleur-neon-hover', col+'80');
+    };
+
+    imageUpload.onchange = ()=>{
+      const f = imageUpload.files[0]; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = e=> visage.style.backgroundImage = `url('${e.target.result}')`;
+      rd.readAsDataURL(f);
+    };
+
+    // sliders
+    rateRange.oninput = e=>{ rate = parseFloat(e.target.value); rateValue.textContent = rate.toFixed(1)+"x"; };
+    pitchRange.oninput = e=>{ pitch = parseFloat(e.target.value); pitchValue.textContent = pitch.toFixed(1); };
+    volumeRange.oninput = e=>{ volume = parseFloat(e.target.value); volumeValue.textContent = volume.toFixed(1); };
+
+    // voix
+    voiceGender.onchange = populateVoiceSelect;
+    voiceSelect.onchange = e=>{
+      const all = speechSynthesis.getVoices();
+      selectedVoice = all[parseInt(e.target.value,10)];
+    };
+    btnPreview.onclick = ()=> speak("Bonjour, ceci est un test de voix.");
+
+    // charger voix (certains navigateurs remplissent de façon asynchrone)
+    window.speechSynthesis.onvoiceschanged = buildVoiceList;
+    // appel initial (au cas où on ait déjà les voix)
+    setTimeout(buildVoiceList, 200);
+
+    // démarrage : appliquer couleur par défaut
+    document.documentElement.style.setProperty('--couleur-neon', getComputedStyle(document.documentElement).getPropertyValue('--couleur-neon')||'#0f0');
+    document.documentElement.style.setProperty('--couleur-neon-hover', getComputedStyle(document.documentElement).getPropertyValue('--couleur-neon-hover')||'#00ff00');
+  </script>
+</body>
+</html>
