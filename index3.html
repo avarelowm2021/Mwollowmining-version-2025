@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculateur de Billets Mwal</title>
+  <style>
+    body {
+      background: #111;
+      color: #0f0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: lime;
+      text-shadow: 0 0 15px lime;
+    }
+    input, select {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 15px;
+      background: lime;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+    }
+    button:hover {
+      background: #5f5;
+    }
+    .billets {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .billet {
+      background: #222;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,255,0,0.5);
+      width: 200px;
+    }
+    .billet img {
+      width: 180px;
+      border-radius: 8px;
+    }
+    .billet p {
+      margin: 5px 0;
+      font-size: 1rem;
+      color: cyan;
+    }
+    #totalCheck {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>💸 Calculateur de Billets Mwal</h1>
+
+  <!-- Entrée utilisateur -->
+  <div>
+    <label>Noir :</label>
+    <input type="number" id="noir" value="1" step="0.01">
+    <label>Jaune :</label>
+    <input type="number" id="jaune" value="0.0694444444" step="0.0000000001">
+    <label>Rouge :</label>
+    <input type="number" id="rouge" value="0.00000694444444444444" step="0.00000000000000001">
+  </div>
+
+  <!-- Résultat automatique -->
+  <div>
+    <label>Résultat (mwal) :</label>
+    <input type="text" id="noir2" readonly>
+  </div>
+
+  <!-- Sélection du mode -->
+  <label for="mode">Mode :</label>
+  <select id="mode" onchange="changerMode()">
+    <option value="optimal">Optimisé</option>
+    <option value="custom">Personnalisé</option>
+    <option value="manuel">Manuel</option>
+  </select>
+
+  <!-- Sélection coupure personnalisée -->
+  <div id="customChoice" style="display:none;">
+    <label for="coupurePref">Coupure prioritaire :</label>
+    <select id="coupurePref">
+      <option value="4">Billet de 4</option>
+      <option value="3">Billet de 3</option>
+      <option value="2">Billet de 2</option>
+      <option value="1">Billet de 1</option>
+    </select>
+  </div>
+
+  <!-- Mode manuel -->
+  <div id="manuelInputs" style="display:none; margin-top:15px;">
+    <label>Billets de 1 :</label><input type="number" id="b1" value="0" min="0"><br>
+    <label>Billets de 2 :</label><input type="number" id="b2" value="0" min="0"><br>
+    <label>Billets de 3 :</label><input type="number" id="b3" value="0" min="0"><br>
+    <label>Billets de 4 :</label><input type="number" id="b4" value="0" min="0"><br>
+  </div>
+
+  <button onclick="calculer()">Calculer</button>
+
+  <!-- Résultats -->
+  <div class="billets" id="billetsContainer"></div>
+  <div id="totalCheck"></div>
+
+  <script>
+    const images = {
+      1: "assets/billet-1.png",
+      2: "assets/billet-2.png",
+      3: "assets/billet-3.png",
+      4: "assets/billet-4.png"
+    };
+
+    const FACTEUR_MWAL = 0.00000694444444444444;
+
+    function calculAuto() {
+      const noir  = parseFloat(document.getElementById("noir").value) || 0;
+      const jaune = parseFloat(document.getElementById("jaune").value) || 0;
+      const rouge = parseFloat(document.getElementById("rouge").value) || 0;
+      const vert = jaune === 0 ? 0 : noir / jaune;
+      const noir2 = vert * rouge;
+
+      // convertir en mwal
+      const mwal = Math.floor(noir2 / FACTEUR_MWAL);
+      document.getElementById("noir2").value = mwal;
+    }
+
+    function changerMode() {
+      const mode = document.getElementById("mode").value;
+      document.getElementById("customChoice").style.display = (mode === "custom") ? "block" : "none";
+      document.getElementById("manuelInputs").style.display = (mode === "manuel") ? "block" : "none";
+    }
+
+    function calculer() {
+      calculAuto(); // met à jour le champ noir2
+      const montant = parseInt(document.getElementById("noir2").value) || 0;
+      const mode = document.getElementById("mode").value;
+      let billets = {1:0,2:0,3:0,4:0};
+
+      if (mode === "optimal") {
+        let reste = montant;
+        [4,3,2,1].forEach(val => {
+          billets[val] = Math.floor(reste / val);
+          reste = reste % val;
+        });
+      } 
+      else if (mode === "custom") {
+        const pref = parseInt(document.getElementById("coupurePref").value);
+        let reste = montant;
+        billets[pref] = Math.floor(reste / pref);
+        reste = reste % pref;
+        [4,3,2,1].filter(v=>v!==pref).forEach(val => {
+          billets[val] = Math.floor(reste / val);
+          reste = reste % val;
+        });
+      } 
+      else if (mode === "manuel") {
+        billets[1] = parseInt(document.getElementById("b1").value) || 0;
+        billets[2] = parseInt(document.getElementById("b2").value) || 0;
+        billets[3] = parseInt(document.getElementById("b3").value) || 0;
+        billets[4] = parseInt(document.getElementById("b4").value) || 0;
+      }
+
+      afficherResultats(billets, montant);
+    }
+
+    function afficherResultats(billets, montant) {
+      const container = document.getElementById("billetsContainer");
+      container.innerHTML = "";
+      let total = 0;
+
+      for (let val of [4,3,2,1]) {
+        if (billets[val] > 0) {
+          total += billets[val] * val;
+          const billetDiv = document.createElement("div");
+          billetDiv.className = "billet";
+          billetDiv.innerHTML = `
+            <img src="${images[val]}" alt="Billet de ${val}">
+            <p>${billets[val]} × billet(s) de ${val} mwal</p>
+          `;
+          container.appendChild(billetDiv);
+        }
+      }
+
+      // Vérification
+      let totalCheck = document.getElementById("totalCheck");
+      if (total === montant) {
+        totalCheck.style.color = "lime";
+        totalCheck.textContent = `✔ Total correct : ${total} mwal`;
+      } else {
+        totalCheck.style.color = "red";
+        totalCheck.textContent = `❌ Total des billets (${total} mwal) ne correspond pas au résultat calculé (${montant} mwal)`;
+      }
+    }
+
+    // recalcul auto quand on change les valeurs
+    document.querySelectorAll("#noir,#jaune,#rouge").forEach(el=>{
+      el.addEventListener("input", calculAuto);
+    });
+
+    calculAuto();
+  </script>
+</body>
+</html>
